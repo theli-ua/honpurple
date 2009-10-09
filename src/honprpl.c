@@ -174,14 +174,33 @@ static GList *honprpl_actions(PurplePlugin *plugin, gpointer context)
 */
 static const char *honprpl_list_icon(PurpleAccount *acct, PurpleBuddy *buddy)
 {
-	return "hon";
+	PurplePresence *presence;
+	PurpleStatus *purple_status;
+	guint32 status;
+	guint32 flags;
+	
+	if (!buddy)
+		return HON_PROTOCOL_ICON;
+	presence = purple_buddy_get_presence(buddy);
+	purple_status = purple_presence_get_active_status(presence);
+
+	status = purple_status_get_attr_int(purple_status,HON_STATUS_ATTR);
+	flags = purple_status_get_attr_int(purple_status,HON_FLAGS_ATTR);
+	
+	if (status == HON_STATUS_INGAME || status == HON_STATUS_INLOBBY)
+	{
+		return HON_INGAME_EMBLEM;
+	}
+
+	return HON_PROTOCOL_ICON;
+	
 }
 
 static char *honprpl_status_text(PurpleBuddy *buddy) {
 	PurplePresence *presence = purple_buddy_get_presence(buddy);
 	PurpleStatus *status = purple_presence_get_active_status(presence);
-	const gchar* server = purple_status_get_attr_string( status, "server");
-	const gchar* gamename = purple_status_get_attr_string(  status, "game");
+	const gchar* server = purple_status_get_attr_string( status, HON_SERVER_ATTR);
+	const gchar* gamename = purple_status_get_attr_string(  status, HON_GAME_ATTR);
 	GString* info = g_string_new(NULL);
 
 	if (gamename)
@@ -203,15 +222,35 @@ static char *honprpl_status_text(PurpleBuddy *buddy) {
 
 	return g_string_free(info,FALSE);	
 }
+static const char* honprpl_list_emblem(PurpleBuddy *b)
+{
+	PurplePresence *presence = purple_buddy_get_presence(b);
+	PurpleStatus *purple_status = purple_presence_get_active_status(presence);
 
+	PurpleConnection *gc = purple_account_get_connection(purple_buddy_get_account(b));
+	hon_account* hon  = gc->proto_data;
+	guint32 status = purple_status_get_attr_int(purple_status,HON_STATUS_ATTR);
+	guint32 flags = purple_status_get_attr_int(purple_status,HON_FLAGS_ATTR);
+	
+	/*if(status == HON_STATUS_INGAME || status == HON_STATUS_INLOBBY)
+		return HON_INGAME_EMBLEM;
+	else*/ if (flags & HON_FLAGS_PREPURCHASED)
+	{
+		return HON_PREMIUM_EMBLEM;
+	}
+
+
+
+	return NULL;
+}
 static void honprpl_tooltip_text(PurpleBuddy *buddy,
 								 PurpleNotifyUserInfo *info,
 								 gboolean full) 
 {
 	PurplePresence *presence = purple_buddy_get_presence(buddy);
 	PurpleStatus *status = purple_presence_get_active_status(presence);
-	const gchar* server = purple_status_get_attr_string(status, "server");
-	const gchar* gamename = purple_status_get_attr_string(status, "game");
+	const gchar* server = purple_status_get_attr_string(status, HON_SERVER_ATTR);
+	const gchar* gamename = purple_status_get_attr_string(status, HON_GAME_ATTR);
 	if (gamename)
 	{
 		purple_notify_user_info_add_pair(info, _("Game"), gamename);
@@ -236,27 +275,32 @@ static GList *honprpl_status_types(PurpleAccount *acct)
 	GList *types = NULL;
 	PurpleStatusType *type;
 
-	purple_debug_info(HON_DEBUG_PREFIX, "returning status types for %s: %s, %s, %s\n",
+	purple_debug_info(HON_DEBUG_PREFIX, "returning status types for %s: %s, %s,%s\n",
 		acct->username,
-		HON_STATUS_ONLINE, HON_STATUS_AWAY, HON_STATUS_OFFLINE);
+		HON_STATUS_ONLINE_S, HON_STATUS_INGAME_S,HON_STATUS_OFFLINE_S);
 
 	type = purple_status_type_new_with_attrs(PURPLE_STATUS_AVAILABLE,
-		HON_STATUS_ONLINE, NULL, TRUE, TRUE, FALSE,
-		"message", _("Message"), purple_value_new(PURPLE_TYPE_STRING),
+		HON_STATUS_ONLINE_S, NULL, TRUE, TRUE, FALSE,
+		//HON_GAME_ATTR, _("Game"), purple_value_new(PURPLE_TYPE_STRING),
+		//HON_SERVER_ATTR, _("Server"), purple_value_new(PURPLE_TYPE_STRING),
+		HON_STATUS_ATTR, _("Status"), purple_value_new(PURPLE_TYPE_INT),
+		HON_FLAGS_ATTR, _("Flags"), purple_value_new(PURPLE_TYPE_INT),
 		NULL);
 	types = g_list_prepend(types, type);
 
-	type = purple_status_type_new_with_attrs(PURPLE_STATUS_AWAY,
-		HON_STATUS_AWAY, NULL, TRUE, TRUE, FALSE,
-		"message", _("Message"), purple_value_new(PURPLE_TYPE_STRING),
-		"game", _("Game"), purple_value_new(PURPLE_TYPE_STRING),
-		"server", _("Server"), purple_value_new(PURPLE_TYPE_STRING),
+	type = purple_status_type_new_with_attrs(PURPLE_STATUS_UNAVAILABLE,
+		HON_STATUS_INGAME_S, NULL, TRUE, FALSE, FALSE,
+		HON_GAME_ATTR, _("Game"), purple_value_new(PURPLE_TYPE_STRING),
+		HON_SERVER_ATTR, _("Server"), purple_value_new(PURPLE_TYPE_STRING),
+		HON_STATUS_ATTR, _("Status"), purple_value_new(PURPLE_TYPE_INT),
+		HON_FLAGS_ATTR, _("Flags"), purple_value_new(PURPLE_TYPE_INT),
 		NULL);
 	types = g_list_prepend(types, type);
 
 	type = purple_status_type_new_with_attrs(PURPLE_STATUS_OFFLINE,
-		HON_STATUS_OFFLINE, NULL, TRUE, TRUE, FALSE,
+		HON_STATUS_OFFLINE_S, NULL, TRUE, TRUE, FALSE,
 		"message", _("Message"), purple_value_new(PURPLE_TYPE_STRING),
+		//NULL,NULL, //this produces crash :(
 		NULL);
 	types = g_list_prepend(types, type);
 
@@ -327,45 +371,47 @@ static void pong(PurpleConnection *gc){
 }
 
 static void initiall_statuses(PurpleConnection *gc,gchar* buffer){
-	guint8 status,flags;
+	guint32 status,flags;
 	hon_account* hon;
 	guint32 id,count = read_guint32(buffer);
 	hon = gc->proto_data;
 	purple_debug_info(HON_DEBUG_PREFIX, "parsing status for %d buddies\n",count);
 	while (count-- > 0)
 	{
-		gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE;
+		gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S;
 		
 		id = read_guint32(buffer);
 		status = *buffer++;
 		flags = *buffer++;
 		nick = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id));
-		if (status == STATUS_INLOBBY || status == STATUS_INGAME)
+		if (status == HON_STATUS_INLOBBY || status == HON_STATUS_INGAME)
 		{
 			server = read_string(buffer);
-			status_id = HON_STATUS_AWAY;
+			status_id = HON_STATUS_INGAME_S;
 		}
-		if (status == STATUS_INGAME)
+		if (status == HON_STATUS_INGAME)
 		{
 			gamename = read_string(buffer);
 			gamename = hon_strip(gamename);
 		}
 		if(!status)
-			status_id = HON_STATUS_OFFLINE;
+			status_id = HON_STATUS_OFFLINE_S;
  		purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\n",nick,flags,status,gamename,server);
-		purple_prpl_got_user_status(gc->account, nick, status_id, server ? "server" : NULL,server,gamename ? "game" : NULL,gamename,NULL);
+		purple_prpl_got_user_status(gc->account, nick, status_id,
+			HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
+			server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
 		
 		g_free(gamename);
 		
 	}
 }
 static void user_status(PurpleConnection *gc,gchar* buffer){
-	gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE;
+	gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S;
 	gchar* clan; // or channel?
 	guint32 clanid;
 	hon_account* hon = gc->proto_data;
-	guint8 status;
-	guint8 flags;
+	guint32 status;
+	guint32 flags;
 	
 	guint32 id = read_guint32(buffer);
 	status = *buffer++;
@@ -374,21 +420,23 @@ static void user_status(PurpleConnection *gc,gchar* buffer){
 	/* TODO: figure this out */
 	clanid = read_guint32(buffer);
 	clan = read_string(buffer); // huh ?
-	if (status == STATUS_INLOBBY || status == STATUS_INGAME)
+	if (status == HON_STATUS_INLOBBY || status == HON_STATUS_INGAME)
 	{
 		server = read_string(buffer);
-		status_id = HON_STATUS_AWAY;
+		status_id = HON_STATUS_INGAME_S;
 	}
-	if (status == STATUS_INGAME)
+	if (status == HON_STATUS_INGAME)
 	{
 		gamename = read_string(buffer);
 		gamename = hon_strip(gamename);
 	}
 	if(!status)
-		status_id = HON_STATUS_OFFLINE;
+		status_id = HON_STATUS_OFFLINE_S;
 	purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s\n"
 		,nick,flags,status,gamename,server,clanid,clan);
-	purple_prpl_got_user_status(gc->account, nick, status_id, server ? "server" : NULL,server,gamename ? "game" : NULL,gamename,NULL);
+	purple_prpl_got_user_status(gc->account, nick, status_id,
+		HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
+		server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
 	g_free(gamename);
 }
 
@@ -465,7 +513,7 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 
 		extra = nickname;
 		nickname = honprpl_normalize(gc->account,nickname);
-		purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), nickname, extra, flags & FLAGS_CHAT_MOD ? PURPLE_CBFLAGS_OP :PURPLE_CBFLAGS_NONE, FALSE);
+		purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), nickname, extra, flags & HON_FLAGS_CHAT_MOD ? PURPLE_CBFLAGS_OP :PURPLE_CBFLAGS_NONE, FALSE);
 		if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id)))
 		{
 			g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(nickname));
@@ -1150,7 +1198,7 @@ static PurplePluginProtocolInfo prpl_info =
 			0,       /* scale_rules */
 	},
 	honprpl_list_icon,                  /* list_icon */
-	NULL,                                /* list_emblem */
+	honprpl_list_emblem,                                /* list_emblem */
 	honprpl_status_text,                /* status_text */
 	honprpl_tooltip_text,               /* tooltip_text */
 	honprpl_status_types,               /* status_types */

@@ -12,9 +12,15 @@
 #define honprpl_ID "prpl-hon"
 
 
-#define HON_STATUS_ONLINE   "online"
-#define HON_STATUS_AWAY     "ingame"
-#define HON_STATUS_OFFLINE  "offline"
+#define HON_STATUS_ONLINE_S   "online"
+#define HON_STATUS_OFFLINE_S  "offline"
+#define HON_STATUS_INGAME_S  "ingame"
+
+#define HON_STATUS_ATTR "status"
+#define HON_FLAGS_ATTR "flags"
+#define HON_GAME_ATTR "game"
+#define HON_SERVER_ATTR "server"
+
 
 #define HON_BUDDIES_GROUP  "HoN Buddies"
 #define HON_CLANMATES_GROUP  "HoN Clan Roster"
@@ -31,13 +37,18 @@
 #define HON_CHAT_PORT 11031
 
 
-#define STATUS_OFFLINE	0
-#define STATUS_UNKNOWN	3
-#define STATUS_INLOBBY	4
-#define STATUS_INGAME	5
+#define HON_PROTOCOL_ICON "hon"
+#define HON_INGAME_EMBLEM "hon_ingame"
+#define HON_PREMIUM_EMBLEM "hon_premium"
 
-#define FLAGS_PREPURCHASED 0x40
-#define FLAGS_CHAT_MOD 0x01
+
+#define HON_STATUS_OFFLINE	0
+#define HON_STATUS_ONLINE	3
+#define HON_STATUS_INLOBBY	4
+#define HON_STATUS_INGAME	5
+
+#define HON_FLAGS_PREPURCHASED 0x40
+#define HON_FLAGS_CHAT_MOD 0x01
 
 #define N_(x) (x)
 #define _(x) (x)

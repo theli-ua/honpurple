@@ -202,9 +202,16 @@ gchar* hon2html(const gchar* input){
 			opened |= 2;
 			if(buffer[1] == 'w' || buffer[1] == 'W')
 			{
+#if 0
 				if (opened == 3)decoded = g_string_append(decoded,"</FONT>");
 				decoded = g_string_append(decoded,"<FONT COLOR=\"#FFFFFF\" BACK=\"black\">");
 				buffer += 2;
+#else
+				/* let's just clear color */
+				g_string_append(decoded,"</FONT>");
+				buffer += 2;
+				opened = 0;
+#endif
 			}
 			else if (buffer[1] == 'r' || buffer[1] == 'R' )
 			{

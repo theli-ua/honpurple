@@ -1,4 +1,4 @@
-CFLAGS := -I. -DPURPLE_PLUGINS -fpic
+CFLAGS := -I. -DPURPLE_PLUGINS -fpic -g
 CFLAGS += $(shell pkg-config --cflags purple)
 LDFLAGS := $(shell pkg-config --libs purple) -fpic
 TARGET := libhon.so

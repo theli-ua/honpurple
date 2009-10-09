@@ -9,7 +9,7 @@ OBJECTS = $(CFILES:%.c=%.o)
 .PHONY: all
 all: $(TARGET)
 
-$(TARGET).so: $(OBJECTS)
+$(TARGET): $(OBJECTS)
 	$(CC) -shared $(OBJECTS) $(LDFLAGS) -o $(TARGET)
 
 %.o: %.c

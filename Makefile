@@ -2,9 +2,9 @@ TARGET := libhon.so
 VERSION := $(shell cat src/honprpl.h | sed -n 's/.*DISPLAY_VERSION.*"\(.*\)"/\1/p')
 
 .PHONY: all
-all: $(TARGET).so
+all: $(TARGET)
 
-$(TARGET).so: 
+$(TARGET): 
 	@make -C src
 
 clean:

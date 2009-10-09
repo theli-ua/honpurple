@@ -852,12 +852,12 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 
 
 				/* TODO: USE CHAT URL */
-				if (purple_proxy_connect(gc, gc->account, "localhost",HON_CHAT_PORT,
-					hon_login_cb, gc) == NULL)
-// 				if (purple_proxy_connect(gc, gc->account, 
-// 				                         ((deserialized_element*)(g_hash_table_lookup(account_data->array,"chat_url")))->string->str,
-// 				                         HON_CHAT_PORT,
-// 					hon_login_cb, gc) == NULL)
+//				if (purple_proxy_connect(gc, gc->account, "localhost",HON_CHAT_PORT,
+//					hon_login_cb, gc) == NULL)
+ 				if (purple_proxy_connect(gc, gc->account, 
+ 				                         ((deserialized_element*)(g_hash_table_lookup(account_data->array,"chat_url")))->string->str,
+ 				                         HON_CHAT_PORT,
+ 					hon_login_cb, gc) == NULL)
 				{
 					purple_connection_error_reason (gc,
 						PURPLE_CONNECTION_ERROR_NETWORK_ERROR,

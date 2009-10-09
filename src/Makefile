@@ -7,7 +7,7 @@ CFILES   := $(foreach dir,.,$(notdir $(wildcard $(dir)/*.c)))
 OBJECTS = $(CFILES:%.c=%.o)
 
 .PHONY: all
-all: $(TARGET).so
+all: $(TARGET)
 
 $(TARGET).so: $(OBJECTS)
 	$(CC) -shared $(OBJECTS) $(LDFLAGS) -o $(TARGET)

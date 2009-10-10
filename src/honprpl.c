@@ -48,7 +48,7 @@ static void update_buddies(PurpleConnection* gc){
 	hon_account* hon = gc->proto_data;
 	PurpleGroup* buddies = purple_find_group(HON_BUDDIES_GROUP);
 	deserialized_element* buddy_data;
-	
+
 	GHashTableIter iter;
 	
 	if (!hon->buddies)
@@ -189,6 +189,8 @@ static const char *honprpl_list_icon(PurpleAccount *acct, PurpleBuddy *buddy)
 	
 	if (status == HON_STATUS_INGAME || status == HON_STATUS_INLOBBY)
 	{
+		purple_debug_info(HON_DEBUG_PREFIX, "%s icon: %s\n",
+		buddy->name,HON_INGAME_EMBLEM);
 		return HON_INGAME_EMBLEM;
 	}
 
@@ -463,8 +465,10 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 	hon_account* hon = gc->proto_data;
 	guint8 unknown;
 	guint32 unknown2,chat_id,creator,count;
+	guint32 purple_flags = 0;
 	gchar* topic,*topic_raw;
 	gchar* extra;
+	gchar* buf_bkp;
 	
 	gchar* room = buffer;
 	buffer += strlen(buffer) + 1;
@@ -482,6 +486,16 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 		buffer += 16;
 
 	} 
+	else if (unknown2 == 0x3)
+	{
+		creator = read_guint32(buffer);
+		buffer += 11;
+	}
+	else if (unknown2 == 0x2)
+	{
+		creator = read_guint32(buffer);
+		buffer += 5;
+	}
 	else if (unknown2 == 0x1)
 	{
 		creator = read_guint32(buffer);
@@ -511,20 +525,30 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 		purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d\n",
 			nickname,account_id,status,flags);
 
+		if (account_id == creator)
+			purple_flags = PURPLE_CBFLAGS_FOUNDER;
+		else if (flags & HON_FLAGS_CHAT_MOD)
+			purple_flags = PURPLE_CBFLAGS_OP;
+		else
+			purple_flags = PURPLE_CBFLAGS_NONE;
 		extra = nickname;
 		nickname = honprpl_normalize(gc->account,nickname);
-		purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), nickname, extra, flags & HON_FLAGS_CHAT_MOD ? PURPLE_CBFLAGS_OP :PURPLE_CBFLAGS_NONE, FALSE);
+		purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), nickname, extra, purple_flags, FALSE);
 		if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id)))
 		{
 			g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(nickname));
 		}
 
 	}
+	if (hon->self.account_id == creator)
+		purple_flags = PURPLE_CBFLAGS_FOUNDER;
+	else
+		purple_flags = PURPLE_CBFLAGS_NONE;
 	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", topic, PURPLE_MESSAGE_SYSTEM|PURPLE_MESSAGE_NO_LOG, time(NULL));
 	g_free(topic);
 	g_free(topic_raw);
 
-	purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), hon->self.nickname, NULL, PURPLE_CBFLAGS_NONE, FALSE);
+	purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), hon->self.nickname, NULL,purple_flags , FALSE);
 }
 static void chat_msg(PurpleConnection *gc,gchar* buffer){
 	hon_account *hon = gc->proto_data;
@@ -581,7 +605,12 @@ static void leaved_chat(PurpleConnection *gc,gchar* buffer){
 static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length){
 	guint8 packet_id = *buffer++;
 	GString* hexdump;
-	
+#if 0
+	hexdump = g_string_new(NULL);
+	hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
+	purple_debug_info(HON_DEBUG_PREFIX, "packet:\nid:%X(%d)\nlength:%d\ndata:\n%s\n",packet_id,packet_id,packet_length, hexdump->str);
+	g_string_free(hexdump,TRUE);
+#endif
 	switch (packet_id)
 	{
 	case 0x00: /* logged on ! */
@@ -784,6 +813,9 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 		purple_connection_set_state(gc, PURPLE_DISCONNECTED);
 	}
 	else{
+		purple_debug_info(HON_DEBUG_PREFIX, "data from masterserver: \n%s\n",
+		url_text);
+
 		account_data = deserialize_php(&url_text,strlen(url_text));
 		if (account_data->type != PHP_ARRAY)
 		{
@@ -812,17 +844,23 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 				hon->self.nickname = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"nickname")))->string->str;
 				hon->self.account_id = atoi(((deserialized_element*)(g_hash_table_lookup(account_data->array,"account_id")))->string->str);
 				
-				hon->buddies = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"buddy_list")))->array;
-				tmp = g_hash_table_lookup(hon->buddies,account_id);
-				hon->buddies = tmp ? tmp->array : NULL;
+				tmp = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"buddy_list")));
+				if (tmp){
+					tmp = g_hash_table_lookup(tmp->array,account_id);
+					hon->buddies = tmp ? tmp->array : NULL;
+				}
 
-				hon->banned = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"banned")))->array;
-				tmp = g_hash_table_lookup(hon->banned,account_id);
-				hon->banned = tmp ? tmp->array : NULL;
+				tmp = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"banned_list")));
+				if (tmp){
+					tmp = g_hash_table_lookup(tmp->array,account_id);
+					hon->banned = tmp ? tmp->array : NULL;
+				}
 
-				hon->ignores = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"ignored")))->array;
-				tmp = g_hash_table_lookup(hon->ignores,account_id);
-				hon->ignores = tmp ? tmp->array : NULL;
+				tmp = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"ignored_list")));
+				if (tmp){
+					tmp = g_hash_table_lookup(tmp->array,account_id);
+					hon->ignores = tmp ? tmp->array : NULL;
+				}
 
 				hon->clanmates = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"clan_roster")))->array;
 				if (g_hash_table_lookup(hon->clanmates,"error"))
@@ -917,6 +955,8 @@ static void honprpl_close(PurpleConnection *gc)
 	hon_account* hon = gc->proto_data;
 	close(hon->fd);
 
+	if (gc->inpa)
+		purple_input_remove(gc->inpa);
 	g_hash_table_destroy(hon->id2nick);
 	destroy_php_element(hon->account_data);
 	g_free(hon);
@@ -1094,6 +1134,7 @@ static int honprpl_chat_send(PurpleConnection *gc, int id, const char *message,
 	buffer = g_byte_array_append(buffer,(guint8*)&id,4);
 	do_write(hon->fd,buffer->data,buffer->len);
 	g_byte_array_free(buffer,TRUE);
+	serv_got_chat_in(gc,id,hon->self.nickname,PURPLE_MESSAGE_SEND,message,time(NULL));
 	return 0;
 }
 

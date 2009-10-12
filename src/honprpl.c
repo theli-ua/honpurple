@@ -465,12 +465,12 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 {
 	PurpleConversation *convo;
 	hon_account* hon = gc->proto_data;
-	guint8 unknown;
-	guint32 unknown2,chat_id,creator,count;
+	guint8 unknown,flags;
+	guint32 op_count,chat_id,count;
 	guint32 purple_flags = 0;
 	gchar* topic,*topic_raw;
 	gchar* extra;
-	gchar* buf_bkp;
+	GHashTable* ops = NULL;
 	
 	gchar* room = buffer;
 	buffer += strlen(buffer) + 1;
@@ -479,44 +479,17 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 	topic_raw = read_string(buffer);
 	topic = hon2html(topic_raw);
 	topic_raw = hon_strip(topic_raw);
-	unknown2 = read_guint32(buffer);
-	creator = 0;
-
-	if (unknown2 == 0x0000005)
+	op_count = read_guint32(buffer);
+	if (op_count != 0)
 	{
-		creator = read_guint32(buffer);
-		buffer += 21;
-
-	} 
-	else if (unknown2 == 0x0000004)
-	{
-		creator = read_guint32(buffer);
-		buffer += 16;
-
-	} 
-	else if (unknown2 == 0x3)
-	{
-		creator = read_guint32(buffer);
-		buffer += 11;
-	}
-	else if (unknown2 == 0x2)
-	{
-		creator = read_guint32(buffer);
-		buffer += 5;
-	}
-	else if (unknown2 == 0x1)
-	{
-		creator = read_guint32(buffer);
-		buffer++;
-	}
-	else if (unknown2 == 0)
-	{
-	}
-	else
-	{
-		purple_debug_info(HON_DEBUG_PREFIX, "on parsing room join unknown1 = %d, unknown2 = %d, don't know how to handle\n",
-			unknown,unknown2);
-		return;
+		guint32 op_id,op_type;
+		ops = g_hash_table_new(g_direct_hash,g_direct_equal);
+		while (op_count--)
+		{
+			op_id = read_guint32(buffer);
+			op_type = *buffer++;
+			g_hash_table_insert(ops,GINT_TO_POINTER(op_id),GINT_TO_POINTER(op_type));
+		}
 	}
 	count = read_guint32(buffer);
 	convo = serv_got_joined_chat(gc, chat_id, room);
@@ -525,20 +498,24 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 	while (count--)
 	{
 		guint32 account_id;
-		guint8 status,flags;
+		guint8 status;
 		gchar* nickname = read_string(buffer);
 		account_id = read_guint32(buffer);
 		status = *buffer++;
 		flags = *buffer++;
 		purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d\n",
 			nickname,account_id,status,flags);
+		
+		purple_flags = PURPLE_CBFLAGS_NONE;
 
-		if (account_id == creator)
-			purple_flags = PURPLE_CBFLAGS_FOUNDER;
+		if (flags & HON_FLAGS_CHAT_FOUNDER)
+		{
+			purple_flags |= PURPLE_CBFLAGS_FOUNDER;
+		}
 		else if (flags & HON_FLAGS_CHAT_MOD)
-			purple_flags = PURPLE_CBFLAGS_OP;
-		else
-			purple_flags = PURPLE_CBFLAGS_NONE;
+			purple_flags |= PURPLE_CBFLAGS_OP;
+			
+
 		extra = nickname;
 		nickname = honprpl_normalize(gc->account,nickname);
 		purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), nickname, extra, purple_flags, FALSE);
@@ -548,10 +525,21 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 		}
 
 	}
-	if (hon->self.account_id == creator)
-		purple_flags = PURPLE_CBFLAGS_FOUNDER;
-	else
-		purple_flags = PURPLE_CBFLAGS_NONE;
+	flags = 0;
+	purple_flags = PURPLE_CBFLAGS_NONE;
+
+	if(ops)
+	{
+		flags = GPOINTER_TO_INT(g_hash_table_lookup(ops,GINT_TO_POINTER(hon->self.account_id)));
+		g_hash_table_destroy(ops);
+	}
+	if (flags & HON_FLAGS_CHAT_FOUNDER)
+	{
+		purple_flags |= PURPLE_CBFLAGS_FOUNDER;
+	}
+	else if (flags & HON_FLAGS_CHAT_MOD)
+		purple_flags |= PURPLE_CBFLAGS_OP;
+
 	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", topic, PURPLE_MESSAGE_SYSTEM|PURPLE_MESSAGE_NO_LOG, time(NULL));
 	g_free(topic);
 	g_free(topic_raw);
@@ -575,8 +563,9 @@ static void chat_msg(PurpleConnection *gc,gchar* buffer){
 static void joined_chat(PurpleConnection *gc,gchar* buffer){
 	hon_account* hon = gc->proto_data;
 	guint32 account_id;
-	guint32 chan_id;
+	guint32 chan_id,purple_flags = PURPLE_CBFLAGS_NONE;
 	PurpleConversation* conv;
+	guint8 status,flags;
 	gchar* extra;
 	gchar* nick = read_string(buffer);
 	account_id = read_guint32(buffer);
@@ -586,11 +575,21 @@ static void joined_chat(PurpleConnection *gc,gchar* buffer){
 	/* TODO: there are common status and flags after this! */
 	extra = nick;
 	nick = honprpl_normalize(gc->account,nick);
+	status = *buffer++;
+	flags = *buffer++;
+
+	if (flags & HON_FLAGS_CHAT_FOUNDER)
+	{
+		purple_flags |= PURPLE_CBFLAGS_FOUNDER;
+	}
+	else if (flags & HON_FLAGS_CHAT_MOD)
+		purple_flags |= PURPLE_CBFLAGS_OP;
+
+
 	if (conv)
 	{
-		purple_conv_chat_add_user(PURPLE_CONV_CHAT(conv),nick,extra,PURPLE_CBFLAGS_NONE,TRUE);
+		purple_conv_chat_add_user(PURPLE_CONV_CHAT(conv),nick,extra,purple_flags,TRUE);
 	}
-	
 	if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id)))
 	{
 		g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(nick));
@@ -611,10 +610,13 @@ static void leaved_chat(PurpleConnection *gc,gchar* buffer){
 		purple_conv_chat_remove_user(PURPLE_CONV_CHAT(conv),nick,"");
 	}
 }
+static void got_clan_whisper(PurpleConnection *gc,gchar* buffer){
+
+}
 static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length){
 	guint8 packet_id = *buffer++;
 	GString* hexdump;
-#if 1
+#if 0
 	hexdump = g_string_new(NULL);
 	hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
 	purple_debug_info(HON_DEBUG_PREFIX, "packet:\nid:%X(%d)\nlength:%d\ndata:\n%s\n",packet_id,packet_id,packet_length, hexdump->str);
@@ -664,6 +666,9 @@ static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length)
 		g_string_free(hexdump,TRUE);
 #endif
 		user_status(gc,buffer);
+		break;
+	case 0x13:
+		got_clan_whisper(gc,buffer);
 		break;
 	case 0x1C:
 		got_pm(gc,buffer,FALSE);
@@ -899,12 +904,15 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 
 
 				/* TODO: USE CHAT URL */
-//				if (purple_proxy_connect(gc, gc->account, "localhost",HON_CHAT_PORT,
-//					hon_login_cb, gc) == NULL)
+#ifdef THELI_CONNECT_TO_LOCALHOST
+				if (purple_proxy_connect(gc, gc->account, "localhost",HON_CHAT_PORT,
+					hon_login_cb, gc) == NULL)
+#else
  				if (purple_proxy_connect(gc, gc->account, 
  				                         ((deserialized_element*)(g_hash_table_lookup(account_data->array,"chat_url")))->string->str,
  				                         HON_CHAT_PORT,
  					hon_login_cb, gc) == NULL)
+#endif
 				{
 					purple_connection_error_reason (gc,
 						PURPLE_CONNECTION_ERROR_NETWORK_ERROR,

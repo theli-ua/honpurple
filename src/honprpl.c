@@ -230,7 +230,6 @@ static const char* honprpl_list_emblem(PurpleBuddy *b)
 	PurpleStatus *purple_status = purple_presence_get_active_status(presence);
 
 	PurpleConnection *gc = purple_account_get_connection(purple_buddy_get_account(b));
-	hon_account* hon  = gc->proto_data;
 	guint32 status = purple_status_get_attr_int(purple_status,HON_STATUS_ATTR);
 	guint32 flags = purple_status_get_attr_int(purple_status,HON_FLAGS_ATTR);
 	
@@ -448,7 +447,7 @@ static void user_status(PurpleConnection *gc,gchar* buffer){
 static void got_pm(PurpleConnection *gc,gchar* buffer,guint8 is_whisper)
 {
 	hon_account* hon = gc->proto_data;
-	PurpleMessageFlags receive_flags = PURPLE_MESSAGE_RECV;
+	PurpleMessageFlags receive_flags;
 	gchar* message,*from_username = read_string(buffer);
 	message = hon2html(buffer);
 	if (from_username[0] == '[')
@@ -457,9 +456,37 @@ static void got_pm(PurpleConnection *gc,gchar* buffer,guint8 is_whisper)
 			from_username++;
 		from_username++;
 	}
-	
+	if (is_whisper)
+		 receive_flags = PURPLE_MESSAGE_WHISPER;
+	else
+		receive_flags = PURPLE_MESSAGE_RECV;
 	serv_got_im(gc, from_username, message, receive_flags, time(NULL));
 	g_free(message);
+}
+static void got_chanlist(PurpleConnection *gc,gchar* buffer){
+	hon_account* hon = gc->proto_data;
+	guint32 count = read_guint32(buffer);
+	if (!hon->roomlist)
+		return;
+	while (count--)
+	{
+		PurpleRoomlistRoom *room;
+		gchar* name;
+		guint32 id,participants;
+		id = read_guint32(buffer);
+		name = read_string(buffer);
+		participants = read_guint32(buffer);
+		room = purple_roomlist_room_new(PURPLE_ROOMLIST_ROOMTYPE_ROOM, name, NULL);
+
+		purple_roomlist_room_add_field(hon->roomlist, room, GINT_TO_POINTER(id));
+		purple_roomlist_room_add_field(hon->roomlist, room, name);
+		purple_roomlist_room_add_field(hon->roomlist, room, GINT_TO_POINTER(participants));
+		purple_roomlist_room_add(hon->roomlist, room);
+	}
+	purple_roomlist_set_in_progress(hon->roomlist, FALSE);
+	purple_roomlist_unref(hon->roomlist);
+	hon->roomlist = NULL;
+
 }
 static void entered_chat(PurpleConnection *gc,gchar* buffer)
 {
@@ -612,6 +639,23 @@ static void leaved_chat(PurpleConnection *gc,gchar* buffer){
 }
 static void got_clan_whisper(PurpleConnection *gc,gchar* buffer){
 	//TODO
+	hon_account* hon = gc->proto_data;
+	guint32 buddy_id;
+	gchar* message,*user;
+	PurpleConversation* clanConv;
+	GString* clan_chat_name;
+	buddy_id = read_guint32(buffer);
+	message = hon2html(buffer);
+	clan_chat_name = g_string_new("Clan ");
+	clan_chat_name = g_string_append(clan_chat_name,hon->self.clan_name);
+	clanConv = purple_find_conversation_with_account(PURPLE_CONV_TYPE_CHAT,clan_chat_name->str,gc->account);
+	g_string_free(clan_chat_name,TRUE);
+	if (clanConv)
+	{
+		user = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(buddy_id));
+		purple_conv_chat_write(PURPLE_CONV_CHAT(clanConv), user,message, PURPLE_MESSAGE_WHISPER, time(NULL));
+	}
+	g_free(message);
 }
 static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length){
 	guint8 packet_id = *buffer++;
@@ -672,6 +716,9 @@ static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length)
 		break;
 	case 0x1C:
 		got_pm(gc,buffer,FALSE);
+		break;
+	case 0x1F:
+		got_chanlist(gc,buffer);
 		break;
 	default:
 		hexdump = g_string_new(NULL);
@@ -769,6 +816,7 @@ static void hon_login_cb(gpointer data, gint source, const gchar *error_message)
 	hon_account *hon = gc->proto_data;
 	GByteArray* buff;
 	int len;
+	int on = 1;
 	
 
 
@@ -783,6 +831,11 @@ static void hon_login_cb(gpointer data, gint source, const gchar *error_message)
 	}
 
 	hon->fd = source;
+#ifdef _WIN32
+	len = setsockopt(source,IPPROTO_TCP, TCP_NODELAY, &on, sizeof (on));
+#else
+	setsockopt(source,SOL_TCP, TCP_NODELAY, &on, sizeof (on));
+#endif
 
 	buff = g_byte_array_sized_new(1);
 	buff->data[0] = 0xFF;
@@ -1179,63 +1232,54 @@ static void honprpl_set_chat_topic(PurpleConnection *gc, int id,
 {
 }
 
-static gboolean honprpl_finish_get_roomlist(gpointer roomlist) {
-	purple_roomlist_set_in_progress((PurpleRoomlist *)roomlist, FALSE);
-	return FALSE;
-}
-
 static PurpleRoomlist *honprpl_roomlist_get_list(PurpleConnection *gc) {
-	const char *username = gc->account->username;
+	
 	PurpleRoomlist *roomlist = purple_roomlist_new(gc->account);
+	hon_account* hon = gc->proto_data;
 	GList *fields = NULL;
 	PurpleRoomlistField *field;
-	GList *chats;
-	GList *seen_ids = NULL;
+	guint8 packet_id = 0x1F;
 
-	purple_debug_info(HON_DEBUG_PREFIX, "%s asks for room list; returning:\n", username);
 
 	/* set up the room list */
+	field = purple_roomlist_field_new(PURPLE_ROOMLIST_FIELD_INT, _("Id"), "Id", FALSE);
+	fields = g_list_append(fields, field);
+
 	field = purple_roomlist_field_new(PURPLE_ROOMLIST_FIELD_STRING, "room",
 		"room", TRUE /* hidden */);
 	fields = g_list_append(fields, field);
 
-	field = purple_roomlist_field_new(PURPLE_ROOMLIST_FIELD_INT, "Id", "Id", FALSE);
+	field = purple_roomlist_field_new(PURPLE_ROOMLIST_FIELD_INT, _("participants"), "participants", FALSE);
 	fields = g_list_append(fields, field);
 
 	purple_roomlist_set_fields(roomlist, fields);
 
-	/* add each chat room. the chat ids are cached in seen_ids so that each room
-	* is only returned once, even if multiple users are in it. */
-	for (chats  = purple_get_chats(); chats; chats = g_list_next(chats)) {
-		PurpleConversation *conv = (PurpleConversation *)chats->data;
-		PurpleRoomlistRoom *room;
-		const char *name = conv->name;
-		int id = purple_conversation_get_chat_data(conv)->id;
 
-		/* have we already added this room? */
-		if (g_list_find_custom(seen_ids, name, (GCompareFunc)strcmp))
-			continue;                                /* yes! try the next one. */
+	purple_roomlist_set_in_progress(roomlist, TRUE);
 
-		/* This cast is OK because this list is only staying around for the life
-		* of this function and none of the conversations are being deleted
-		* in that timespan. */
-		seen_ids = g_list_prepend(seen_ids, (char *)name); /* no, it's new. */
-		purple_debug_info(HON_DEBUG_PREFIX, "%s (%d), ", name, id);
+	do_write(hon->fd,&packet_id,1);
+	if(hon->roomlist)
+		purple_roomlist_unref(hon->roomlist);
 
-		room = purple_roomlist_room_new(PURPLE_ROOMLIST_ROOMTYPE_ROOM, name, NULL);
-		purple_roomlist_room_add_field(roomlist, room, name);
-		purple_roomlist_room_add_field(roomlist, room, &id);
-		purple_roomlist_room_add(roomlist, room);
-	}
+	hon->roomlist = roomlist;
 
-	g_list_free(seen_ids);
-	purple_timeout_add(1 /* ms */, honprpl_finish_get_roomlist, roomlist);
 	return roomlist;
 }
 
 static void honprpl_roomlist_cancel(PurpleRoomlist *list) {
-	purple_debug_info(HON_DEBUG_PREFIX, "%s asked to cancel room list request\n",
-		list->account->username);
+	PurpleConnection *gc;
+	hon_account *hon;
+
+	gc = purple_account_get_connection(list->account);
+	hon = gc->proto_data;
+
+	purple_roomlist_set_in_progress(list, FALSE);
+
+	if (hon->roomlist == list) {
+		hon->roomlist = NULL;
+		purple_roomlist_unref(list);
+	}
+
 }
 
 
@@ -1328,7 +1372,7 @@ static PurpleCmdRet send_whisper(PurpleConversation *conv, const gchar *cmd,
 {
 	const char *to_username;
 	const char *message;
-	PurpleConvChat *chat;
+	gchar* colored_msg;
 	hon_account* hon = conv->account->gc->proto_data;
 	GByteArray* buffer;
 	guint8 packet_id = 0x08;
@@ -1361,10 +1405,13 @@ static PurpleCmdRet send_whisper(PurpleConversation *conv, const gchar *cmd,
 
 	purple_debug_info("honprpl", "%s whispers to %s in chat room %s: %s\n",
 		hon->self.nickname, to_username, conv->name, message);
-	chat = purple_conversation_get_chat_data(conv);
 	
 	do_write(hon->fd,buffer->data,buffer->len);
 	g_byte_array_free(buffer,TRUE);
+
+	colored_msg = hon2html(message);
+	purple_conversation_write(conv,hon->self.nickname, colored_msg, PURPLE_MESSAGE_SEND, time(NULL));
+	g_free(colored_msg);
 
 	return PURPLE_CMD_RET_OK;
 	
@@ -1377,6 +1424,7 @@ static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
 	const char *command = args[0];
 	hon_account* hon = conv->account->gc->proto_data;
 	GByteArray* buffer = g_byte_array_new();
+	GString* msg;
 	guint8 packet_id;
 
 	if (!hon->clan_info)
@@ -1397,8 +1445,32 @@ static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
 		buffer = g_byte_array_append(buffer,&packet_id,1);
 		buffer = g_byte_array_append(buffer,args[1],strlen(args[1])+1);
 		do_write(hon->fd,buffer->data,buffer->len);
+		msg = g_string_new(NULL);
+		g_string_printf(msg,_("Invited %s to clan"),args[1]);
+		purple_conversation_write(conv, "",msg->str , PURPLE_MESSAGE_SYSTEM|PURPLE_MESSAGE_NO_LOG, time(NULL));
+		g_string_free(msg,TRUE);
 		return PURPLE_CMD_RET_OK;
-		
+	}
+	else if (!g_strcmp0(command,"w") || !g_strcmp0(command,"whisper"))
+	{
+		PurpleConversation* clanConv;
+		gchar* message = hon2html(args[1]);
+		GString* clan_chat_name = g_string_new("Clan ");
+		clan_chat_name = g_string_append(clan_chat_name,hon->self.clan_name);
+		clanConv = purple_find_conversation_with_account(PURPLE_CONV_TYPE_CHAT,clan_chat_name->str,conv->account);
+		g_string_free(clan_chat_name,TRUE);
+		if (clanConv)
+		{
+			purple_conv_chat_write(PURPLE_CONV_CHAT(clanConv), hon->self.nickname,message, PURPLE_MESSAGE_WHISPER, time(NULL));
+		}
+		g_free(message);
+
+		packet_id = 0x13;
+		buffer = g_byte_array_append(buffer,&packet_id,1);
+		buffer = g_byte_array_append(buffer,args[1],strlen(args[1])+1);
+		do_write(hon->fd,buffer->data,buffer->len);
+
+		return PURPLE_CMD_RET_OK;
 	}
 	
 	
@@ -1476,7 +1548,7 @@ static void honprpl_init(PurplePlugin *plugin)
 		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
 		"prpl-hon",
 		clan_commands,
-		"clan invite - invite to clan\nother not implemented",
+		"clan invite - invite to clan\nwhisper or w - clan whisper\nother not implemented",
 		NULL); 
 
 	_HON_protocol = plugin;

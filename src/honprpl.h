@@ -8,6 +8,9 @@
 #endif
 
 #include "utils.h"
+#include <roomlist.h>
+
+
 
 #define honprpl_ID "prpl-hon"
 
@@ -71,7 +74,7 @@ typedef struct {
 	GHashTable* id2nick;
 	gchar* cookie;
 	user_info self;
-
+	PurpleRoomlist* roomlist;
 	int fd;
 } hon_account;
 

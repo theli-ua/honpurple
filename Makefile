@@ -13,6 +13,7 @@ clean:
 	rm -rf deb dist
 
 install: $(TARGET)
+	mkdir -p ~/.purple/plugins/
 	cp $(TARGET) ~/.purple/plugins/
 
 sdist:
@@ -25,6 +26,6 @@ deb: all
 	mkdir -p deb/usr/share/pixmaps/pidgin
 	cp $(TARGET) deb/usr/lib/pidgin/
 	rsync -r --exclude=.svn data/pixmaps deb/usr/share/
-	cp -R DEBIAN deb/
+	rsync -r --exclude=.svn DEBIAN deb/
 	sed -i "s:HONPURPLE_VERSION:$(VERSION):" deb/DEBIAN/control 
 	dpkg-deb -b deb dist/honpurple-$(VERSION).deb

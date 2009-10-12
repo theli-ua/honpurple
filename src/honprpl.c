@@ -1388,7 +1388,7 @@ static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
 	if (!g_strcmp0(command,"invite"))
 	{
 		deserialized_element* rank = g_hash_table_lookup(hon->clan_info,"rank");
-		if (rank && g_strcmp0(rank->string->str,"member"))
+		if (rank && !g_ascii_strncasecmp(rank->string->str,"member",6))
 		{
 			*error = g_strdup(_("Only clan founder or officer can invite"));
 			return PURPLE_CMD_RET_FAILED;

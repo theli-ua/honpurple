@@ -1457,7 +1457,7 @@ static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
 		g_string_free(msg,TRUE);
 		return PURPLE_CMD_RET_OK;
 	}
-	else if (!g_strcmp0(command,"w") || !g_strcmp0(command,"whisper"))
+	else if (!g_strcmp0(command,"m") || !g_strcmp0(command,"message"))
 	{
 		PurpleConversation* clanConv;
 		gchar* message = hon2html(args[1]);
@@ -1554,7 +1554,7 @@ static void honprpl_init(PurplePlugin *plugin)
 		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
 		"prpl-hon",
 		clan_commands,
-		"clan invite - invite to clan\nwhisper or w - clan whisper\nother not implemented",
+		"clan invite - invite to clan\nmessage or m - clan message\nother not implemented",
 		NULL); 
 
 	_HON_protocol = plugin;

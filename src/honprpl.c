@@ -22,7 +22,9 @@
 #include "version.h"
 
 #ifndef _WIN32
-#include <socket.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/tcp.h>
 #endif
 
 

@@ -611,7 +611,7 @@ static void leaved_chat(PurpleConnection *gc,gchar* buffer){
 	}
 }
 static void got_clan_whisper(PurpleConnection *gc,gchar* buffer){
-
+	//TODO
 }
 static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length){
 	guint8 packet_id = *buffer++;
@@ -1370,6 +1370,43 @@ static PurpleCmdRet send_whisper(PurpleConversation *conv, const gchar *cmd,
 	
 }
 
+static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
+								 gchar **args, gchar **error, void *userdata) 
+{
+	
+	const char *command = args[0];
+	hon_account* hon = conv->account->gc->proto_data;
+	GByteArray* buffer = g_byte_array_new();
+	guint8 packet_id;
+
+	if (!hon->clan_info)
+	{
+		*error = g_strdup(_("Not in clan"));
+		return PURPLE_CMD_RET_FAILED;
+	}
+
+	if (!g_strcmp0(command,"invite"))
+	{
+		deserialized_element* rank = g_hash_table_lookup(hon->clan_info,"rank");
+		if (rank && g_strcmp0(rank->string->str,"member"))
+		{
+			*error = g_strdup(_("Only clan founder or officer can invite"));
+			return PURPLE_CMD_RET_FAILED;
+		}
+		packet_id = 0x47;
+		buffer = g_byte_array_append(buffer,&packet_id,1);
+		buffer = g_byte_array_append(buffer,args[1],strlen(args[1])+1);
+		do_write(hon->fd,buffer->data,buffer->len);
+		return PURPLE_CMD_RET_OK;
+		
+	}
+	
+	
+
+	*error = g_strdup(_("Unknown clan command"));
+	return PURPLE_CMD_RET_FAILED;
+}
+
 static void honprpl_init(PurplePlugin *plugin)
 {
 	PurpleAccountOption *option_store_md5;
@@ -1424,7 +1461,24 @@ static void honprpl_init(PurplePlugin *plugin)
 		"whisper &lt;message&gt;: send a whisper message",
 		GINT_TO_POINTER(1));                 /* userdata */
 
+	purple_cmd_register("clan",
+		"ws",                  /* args: recipient and message */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		clan_commands,
+		"clan invite - invite to clan\nother not implemented",
+		NULL);   
 	
+	purple_cmd_register("c",
+		"ws",                  /* args: recipient and message */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		clan_commands,
+		"clan invite - invite to clan\nother not implemented",
+		NULL); 
+
 	_HON_protocol = plugin;
 }
 

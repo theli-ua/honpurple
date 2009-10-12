@@ -49,6 +49,7 @@
 
 #define HON_FLAGS_PREPURCHASED 0x40
 #define HON_FLAGS_CHAT_MOD 0x01
+#define HON_FLAGS_CHAT_FOUNDER 0x02
 
 #define N_(x) (x)
 #define _(x) (x)

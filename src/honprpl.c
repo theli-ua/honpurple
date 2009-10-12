@@ -320,6 +320,8 @@ static void blist_example_menu_item(PurpleBlistNode *node, gpointer userdata) {
 }
 
 static GList *honprpl_blist_node_menu(PurpleBlistNode *node) {
+	return NULL;
+
 	purple_debug_info(HON_DEBUG_PREFIX, "providing buddy list context menu item\n");
 
 	if (PURPLE_BLIST_NODE_IS_BUDDY(node)) {
@@ -480,7 +482,13 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 	unknown2 = read_guint32(buffer);
 	creator = 0;
 
-	if (unknown2 == 0x0000004)
+	if (unknown2 == 0x0000005)
+	{
+		creator = read_guint32(buffer);
+		buffer += 21;
+
+	} 
+	else if (unknown2 == 0x0000004)
 	{
 		creator = read_guint32(buffer);
 		buffer += 16;
@@ -575,6 +583,7 @@ static void joined_chat(PurpleConnection *gc,gchar* buffer){
 	chan_id = read_guint32(buffer);
 	conv = purple_find_chat(gc,chan_id);
 
+	/* TODO: there are common status and flags after this! */
 	extra = nick;
 	nick = honprpl_normalize(gc->account,nick);
 	if (conv)
@@ -605,7 +614,7 @@ static void leaved_chat(PurpleConnection *gc,gchar* buffer){
 static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length){
 	guint8 packet_id = *buffer++;
 	GString* hexdump;
-#if 0
+#if 1
 	hexdump = g_string_new(NULL);
 	hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
 	purple_debug_info(HON_DEBUG_PREFIX, "packet:\nid:%X(%d)\nlength:%d\ndata:\n%s\n",packet_id,packet_id,packet_length, hexdump->str);
@@ -1128,13 +1137,15 @@ static int honprpl_chat_send(PurpleConnection *gc, int id, const char *message,
 {
 	GByteArray* buffer = g_byte_array_new();
 	hon_account* hon = gc->proto_data;
+	gchar* coloredmessage = hon2html(message);
 	guint8 packet_id = 0x03;
 	buffer = g_byte_array_append(buffer,&packet_id,1);
 	buffer = g_byte_array_append(buffer,message,strlen(message)+1);
 	buffer = g_byte_array_append(buffer,(guint8*)&id,4);
 	do_write(hon->fd,buffer->data,buffer->len);
 	g_byte_array_free(buffer,TRUE);
-	serv_got_chat_in(gc,id,hon->self.nickname,PURPLE_MESSAGE_SEND,message,time(NULL));
+	serv_got_chat_in(gc,id,hon->self.nickname,PURPLE_MESSAGE_SEND,coloredmessage,time(NULL));
+	g_free(coloredmessage);
 	return 0;
 }
 

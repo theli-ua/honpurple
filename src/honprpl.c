@@ -21,6 +21,10 @@
 #include "util.h"
 #include "version.h"
 
+#ifndef _WIN32
+#include <socket.h>
+#endif
+
 
 static PurplePlugin *_HON_protocol = NULL;
 /*

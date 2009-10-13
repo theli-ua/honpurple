@@ -363,7 +363,7 @@ static GHashTable *honprpl_chat_info_defaults(PurpleConnection *gc,
 		"'room' = 'HoN'\n");
 
 	defaults = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
-	g_hash_table_insert(defaults, "room", g_strdup("HoN"));
+	g_hash_table_insert(defaults, "room", g_strdup(room));
 	return defaults;
 }
 
@@ -421,6 +421,7 @@ static void user_status(PurpleConnection *gc,gchar* buffer){
 	hon_account* hon = gc->proto_data;
 	guint32 status;
 	guint32 flags;
+	guint32 unknown = 0;
 	
 	guint32 id = read_guint32(buffer);
 	status = *buffer++;
@@ -438,11 +439,12 @@ static void user_status(PurpleConnection *gc,gchar* buffer){
 	{
 		gamename = read_string(buffer);
 		gamename = hon_strip(gamename);
+		unknown = read_guint32(buffer);
 	}
 	if(!status)
 		status_id = HON_STATUS_OFFLINE_S;
-	purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s\n"
-		,nick,flags,status,gamename,server,clanid,clan);
+	purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s unknown:%d\n"
+		,nick,flags,status,gamename,server,clanid,clan,unknown);
 	purple_prpl_got_user_status(gc->account, nick, status_id,
 		HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
 		server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);

@@ -477,17 +477,20 @@ static void got_chanlist(PurpleConnection *gc,gchar* buffer){
 	while (count--)
 	{
 		PurpleRoomlistRoom *room;
-		gchar* name;
+		gchar* name,*colorname;
 		guint32 id,participants;
 		id = read_guint32(buffer);
 		name = read_string(buffer);
+		colorname = hon_strip(name);
 		participants = read_guint32(buffer);
-		room = purple_roomlist_room_new(PURPLE_ROOMLIST_ROOMTYPE_ROOM, name, NULL);
+
+		room = purple_roomlist_room_new(PURPLE_ROOMLIST_ROOMTYPE_ROOM, colorname, NULL);
 
 		purple_roomlist_room_add_field(hon->roomlist, room, GINT_TO_POINTER(id));
 		purple_roomlist_room_add_field(hon->roomlist, room, name);
 		purple_roomlist_room_add_field(hon->roomlist, room, GINT_TO_POINTER(participants));
 		purple_roomlist_room_add(hon->roomlist, room);
+		g_free(colorname);
 	}
 	purple_roomlist_set_in_progress(hon->roomlist, FALSE);
 	purple_roomlist_unref(hon->roomlist);
@@ -740,14 +743,13 @@ static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length)
     call for handling in read_cb 
 */
 static int read_recv(PurpleConnection *gc, int sock) {
-	int len;
-	int packet_length;
+	int packet_length,len;
 	
 
-	len = 4;
-	len = read(sock, &packet_length, 4);
+	len = read(sock,&packet_length,4);
 	if(len == 4 && packet_length > 0) {
 		gchar* buffer = g_malloc0(packet_length);
+		while (recv(sock, buffer, packet_length,MSG_PEEK) < packet_length && errno == 0);
 		len = read(sock, buffer, packet_length);
 		if (len == packet_length)
 		{

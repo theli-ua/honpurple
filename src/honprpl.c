@@ -689,7 +689,6 @@ static void leaved_chat(PurpleConnection *gc,gchar* buffer){
 	}
 }
 static void got_clan_whisper(PurpleConnection *gc,gchar* buffer){
-	//TODO
 	hon_account* hon = gc->proto_data;
 	guint32 buddy_id;
 	gchar* message,*user;
@@ -707,6 +706,50 @@ static void got_clan_whisper(PurpleConnection *gc,gchar* buffer){
 		purple_conv_chat_write(PURPLE_CONV_CHAT(clanConv), user,message, PURPLE_MESSAGE_WHISPER, time(NULL));
 	}
 	g_free(message);
+}
+static void got_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
+	hon_account* hon = gc->proto_data;
+	/* TODO: this is not right .. conversation could be closed already */
+	gchar* message = NULL;
+	gchar* user = read_string(buffer);
+	if (!hon->whois_conv)
+		return;
+
+	switch (packet_id){
+	case 0x2b:
+		message = g_strdup_printf(_("Cannot find user %s"),user);
+		break;
+	case 0x2c:
+		message = g_strdup_printf(_("User %s is offline, last seen %s"),user,buffer);
+		break;
+	case 0x2d:
+		{
+			GString* msg = g_string_new(NULL);
+			guint32 chan_count = read_guint32(buffer);
+			if (chan_count > 0)
+				g_string_printf(msg,_("User %s is online and in channels: "),user);
+			else
+				g_string_printf(msg,_("User %s is online."),user);
+			while (chan_count--)
+			{
+				msg = g_string_append(msg,buffer);
+				buffer += strlen(buffer) + 1;
+				if (chan_count == 0)
+					msg = g_string_append(msg,".");
+				else
+					msg = g_string_append(msg,", ");
+			}
+			message = g_string_free(msg,FALSE);
+		}
+		break;
+	case 0x2e:
+		message = g_strdup_printf(_("User %s is ingame, game name %s, game time %s"),user,buffer,buffer + (strlen(buffer) + 1));
+		break;
+	}
+
+	purple_conversation_write(hon->whois_conv, "",message, PURPLE_MESSAGE_SYSTEM|PURPLE_MESSAGE_NO_LOG, time(NULL));
+	g_free(message);
+	hon->whois_conv = NULL;
 }
 static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length){
 	guint8 packet_id = *buffer++;
@@ -771,6 +814,11 @@ static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length)
 	case 0x1F:
 		got_chanlist(gc,buffer);
 		break;
+	case 0x2b:
+	case 0x2c:
+	case 0x2d:
+	case 0x2e:
+		got_userinfo(gc,buffer,packet_id);
 	default:
 		hexdump = g_string_new(NULL);
 		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
@@ -867,10 +915,6 @@ static void hon_login_cb(gpointer data, gint source, const gchar *error_message)
 	GByteArray* buff;
 	int len;
 	int on = 1;
-	
-
-
-
 	if (source < 0) {
 		gchar *tmp = g_strdup_printf(_("Unable to connect: %s"),
 			error_message);
@@ -1098,42 +1142,407 @@ static int honprpl_send_im(PurpleConnection *gc, const char *who,
 
 	return 1;
 }
+static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
+	honprpl_info_tmp* info_tmp = user_data;
+	PurpleConnection *gc = info_tmp->gc;
+	hon_account* hon = gc->proto_data;
+	deserialized_element* data = NULL;
+	deserialized_element* needed_data = NULL;
+	deserialized_element* info_row = NULL;
+	if(
+		!url_text
+		|| (data = deserialize_php(&url_text,strlen(url_text)))->type != PHP_ARRAY
+		)
+	{
+		purple_notify_user_info_add_pair(info_tmp->info, _("Error"), _("error retrieving account stats"));
+	}
+	else
+	{
+		if (
+			(needed_data = g_hash_table_lookup(data->array,"clan_info"))
+			&& needed_data->type == PHP_ARRAY
+			&& (needed_data = g_hash_table_lookup(needed_data->array,info_tmp->account_id))
+			&& needed_data->type == PHP_ARRAY
+			)
+		{
+			if ((info_row = g_hash_table_lookup(needed_data->array,"name")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Clan Name"), info_row->string->str);
+			}
+			if ((info_row = g_hash_table_lookup(needed_data->array,"tag")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Clan Tag"), info_row->string->str);
+			}
+			if ((info_row = g_hash_table_lookup(needed_data->array,"rank")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Clan Rank"), info_row->string->str);
+			}
+		}
 
-static void honprpl_set_info(PurpleConnection *gc, const char *info) {
-	purple_debug_info(HON_DEBUG_PREFIX, "setting %s's user info to %s\n",
-		gc->account->username, info);
+		if (
+			(needed_data = g_hash_table_lookup(data->array,"all_stats"))
+			&& needed_data->type == PHP_ARRAY
+			&& (needed_data = g_hash_table_lookup(needed_data->array,info_tmp->account_id))
+			&& needed_data->type == PHP_ARRAY
+			)
+		{
+			if ((info_row = g_hash_table_lookup(needed_data->array,"level")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Level"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_exp")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Current XP"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_wins")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Wins"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_losses")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Losses"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_concedes")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Concedes"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_concedevotes")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Concede Votes"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_kicked")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Kicks"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_pub_skill")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Current PUB Skill"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_herokills")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Kills"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_deaths")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Deaths"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_buybacks")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Hero Buy Backs"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_herodmg")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Damage to Heroes"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_heroexp")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("XP From Hero Kills"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_heroassists")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Hero Kill Assists"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_denies")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Total Kills Denied"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_exp_denied")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Total XP Denied"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_teamcreepkills")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Enemy Creep Kills"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_teamcreepdmg")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Enemy Creep Damage"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_teamcreepexp")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Enemy Creep XP"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_neutralcreepkills")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Neutral Creep Kills"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_neutralcreepdmg")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Neutral Creep Damage"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_neutralcreepexp")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Neutral Creep XP"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_razed")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Buildings Razed"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_bdmg")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Total Building Damage"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_gold")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Total Gold Farmed"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_herokillsgold")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Gold From Hero Kills"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_teamcreepgold")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Gold From Enemy Creeps"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_neutralcreepgold")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Gold From Neutral Creeps"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_bgold")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Gold From Buildings"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_goldlost2death")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Gold Lost To Death"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_gold_spent")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Total Gold Spent"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_secs")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Total Seconds Played"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_secs_dead")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Total Seconds Dead"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_actions")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Total Actions performed"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_consumables")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Total Consumables Used"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_wards")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Total Wards Used"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"create_date")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Account Created"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"last_login")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Last Login"), info_row->string->str);
+			}
+
+			if ((info_row = g_hash_table_lookup(needed_data->array,"last_activity")) != NULL
+				&& info_row->type == PHP_STRING
+				)
+			{
+				purple_notify_user_info_add_pair(info_tmp->info, _("Last Activity"), info_row->string->str);
+			}
+			/* unused:
+			acc_discos: 6
+			minXP: 1741932
+			nickname: dancercod
+			APEM: 0
+			maxXP: 2177414
+			account_id: 78959
+			AP: 0
+			acc_avg_score: 0.00
+			AR: 0
+			AREM: 0
+			acc_games_played: 116
+			acc_bdmgexp: 0
+			*/
+		}
+
+	}
+	purple_notify_userinfo(gc,        /* connection the buddy info came through */
+		info_tmp->username,  /* buddy's username */
+		info_tmp->info,      /* body */
+		destroy_php_element,      /* callback called when dialog closed */
+		data);     /* userdata for callback */
+
+	g_free(info_tmp->account_id);
+	g_free(info_tmp);
 }
+static void honpurple_info_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
+	honprpl_info_tmp* info_tmp = user_data;
+	PurpleConnection *gc = info_tmp->gc;
+	hon_account* hon = gc->proto_data;
+	deserialized_element* data;
+	deserialized_element* data2;
 
+	if(
+		!url_text
+		|| (data = deserialize_php(&url_text,strlen(url_text)))->type != PHP_ARRAY
+		|| ((data2 = g_hash_table_lookup(data->array,info_tmp->username)) == 0)
+		|| data2->type != PHP_STRING
+		){
+		purple_notify_user_info_add_pair(info_tmp->info, _("Error"), _("error retrieving account id"));
+		purple_notify_userinfo(gc,        /* connection the buddy info came through */
+			info_tmp->username,  /* buddy's username */
+			info_tmp->info,      /* body */
+			NULL,      /* callback called when dialog closed */
+			NULL);     /* userdata for callback */
+		g_free(info_tmp);
+	}
+	else
+	{
+		gchar* url;
+		info_tmp->account_id = g_strdup(data2->string->str);
+		url = g_strdup_printf("%s%s?f=get_all_stats&account_id[0]=%s",
+			purple_account_get_string(gc->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
+			HON_CLIENT_REQUESTER,info_tmp->account_id
+			);
+		purple_util_fetch_url_request_len_with_account(gc->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_info_cb,info_tmp);
+		g_free(url);
+	}
+	if (data)
+		destroy_php_element(data);
+}
 static void honprpl_get_info(PurpleConnection *gc, const char *username) {
-	int a = 0;
-#if 0
-	const char *body;
-	PurpleNotifyUserInfo *info = purple_notify_user_info_new();
-	PurpleAccount *acct;
+	hon_account* hon = gc->proto_data;
+	guint32 buddy_id = 0;
+	gchar* url;
+	honprpl_info_tmp* hon_info = g_new0(honprpl_info_tmp,sizeof(honprpl_info_tmp));
+
+	hon_info->info = purple_notify_user_info_new();
+	hon_info->gc = gc;
+	hon_info->username = username;
 
 	purple_debug_info(HON_DEBUG_PREFIX, "Fetching %s's user info for %s\n", username,
 		gc->account->username);
-
-	if (FALSE /*!get_honprpl_gc(username)*/) {
-		char *msg = g_strdup_printf(_("%s is not logged in."), username);
-		purple_notify_error(gc, _("User Info"), _("User info not available. "), msg);
-		g_free(msg);
-	}
-
-	acct = purple_accounts_find(username, honprpl_ID);
-	if (acct)
-		body = purple_account_get_user_info(acct);
-	else
-		body = _("No user info.");
-	purple_notify_user_info_add_pair(info, "Info", body);
-
-	/* show a buddy's user info in a nice dialog box */
-	purple_notify_userinfo(gc,        /* connection the buddy info came through */
-		username,  /* buddy's username */
-		info,      /* body */
-		NULL,      /* callback called when dialog closed */
-		NULL);     /* userdata for callback */
-#endif
+	url = g_strdup_printf("%s%s?f=nick2id&nickname[]=%s",
+		purple_account_get_string(gc->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
+		HON_CLIENT_REQUESTER,username
+		);
+	purple_util_fetch_url_request_len_with_account(gc->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_info_nick2id_cb,hon_info);
+	g_free(url);
 }
 
 
@@ -1256,21 +1665,6 @@ static int honprpl_chat_send(PurpleConnection *gc, int id, const char *message,
 
 
 
-static void honprpl_get_cb_info(PurpleConnection *gc, int id, const char *who)
-{
-	/*
-	PurpleConversation *conv = purple_find_chat(gc, id);
-	purple_debug_info(HON_DEBUG_PREFIX,
-		"retrieving %s's info for %s in chat room %s\n", who,
-		gc->account->username, conv->name);
-
-	honprpl_get_info(gc, who);
-	*/
-}
-
-
-
-
 static void honprpl_set_chat_topic(PurpleConnection *gc, int id,
 								   const char *topic)
 {
@@ -1326,91 +1720,6 @@ static void honprpl_roomlist_cancel(PurpleRoomlist *list) {
 
 }
 
-
-/*
-* prpl stuff. see prpl.h for more information.
-*/
-
-static PurplePluginProtocolInfo prpl_info =
-{
-	OPT_PROTO_CHAT_TOPIC | OPT_PROTO_UNIQUE_CHATNAME,  /* options */
-	NULL,               /* user_splits, initialized in honprpl_init() */
-	NULL,               /* protocol_options, initialized in honprpl_init() */
-	{   /* icon_spec, a PurpleBuddyIconSpec */
-		"",                   /* format */
-			0,                               /* min_width */
-			0,                               /* min_height */
-			0,                             /* max_width */
-			0,                             /* max_height */
-			0,                           /* max_filesize */
-			0,       /* scale_rules */
-	},
-	honprpl_list_icon,                  /* list_icon */
-	honprpl_list_emblem,                                /* list_emblem */
-	honprpl_status_text,                /* status_text */
-	honprpl_tooltip_text,               /* tooltip_text */
-	honprpl_status_types,               /* status_types */
-	honprpl_blist_node_menu,            /* blist_node_menu */
-	honprpl_chat_info,                  /* chat_info */
-	honprpl_chat_info_defaults,         /* chat_info_defaults */
-	honprpl_login,                      /* login */
-	honprpl_close,                      /* close */
-	honprpl_send_im,                    /* send_im */
-	NULL,                   /* set_info */
-	NULL,                /* send_typing */
-	honprpl_get_info,                   /* get_info */
-	NULL,                 /* set_status */
-	NULL,                   /* set_idle */
-	NULL,              /* change_passwd */
-	honprpl_add_buddy,                  /* add_buddy */
-	honprpl_add_buddies,                /* add_buddies */
-	honprpl_remove_buddy,               /* remove_buddy */
-	honprpl_remove_buddies,             /* remove_buddies */
-	NULL,                 /* add_permit */
-	NULL,                   /* add_deny */
-	NULL,                 /* rem_permit */
-	NULL,                   /* rem_deny */
-	NULL,            /* set_permit_deny */
-	honprpl_join_chat,                  /* join_chat */
-	NULL,                /* reject_chat */
-	honprpl_get_chat_name,              /* get_chat_name */
-	NULL,                /* chat_invite */
-	honprpl_chat_leave,                 /* chat_leave */
-	NULL,               /* chat_whisper */
-	honprpl_chat_send,                  /* chat_send */
-	NULL,                                /* keepalive */
-	NULL,              /* register_user */
-	honprpl_get_cb_info,                /* get_cb_info */
-	NULL,                                /* get_cb_away */
-	NULL,                /* alias_buddy */
-	NULL,                /* group_buddy */
-	NULL,               /* rename_group */
-	NULL,                                /* buddy_free */
-	NULL,               /* convo_closed */
-	honprpl_normalize,                  /* normalize */
-	NULL,             /* set_buddy_icon */
-	NULL,               /* remove_group */
-	NULL,                                /* get_cb_real_name */
-	honprpl_set_chat_topic,             /* set_chat_topic */
-	NULL,                                /* find_blist_chat */
-	honprpl_roomlist_get_list,          /* roomlist_get_list */
-	honprpl_roomlist_cancel,            /* roomlist_cancel */
-	NULL,   /* roomlist_expand_category */
-	NULL,           /* can_receive_file */
-	NULL,                                /* send_file */
-	NULL,                                /* new_xfer */
-	NULL,            /* offline_message */
-	NULL,                                /* whiteboard_prpl_ops */
-	NULL,                                /* send_raw */
-	NULL,                                /* roomlist_room_serialize */
-	NULL,                                /* unregister_user */
-	NULL,                                /* send_attention */
-	NULL,                                /* get_attention_types */
-	sizeof(PurplePluginProtocolInfo),    /* struct_size */
-	NULL,
-	NULL,                                 /* initiate_media */
-	NULL                                  /* can_do_media */	
-};
 static PurpleCmdRet send_whisper(PurpleConversation *conv, const gchar *cmd,
 								 gchar **args, gchar **error, void *userdata) 
 {
@@ -1545,6 +1854,114 @@ static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
 	return PURPLE_CMD_RET_FAILED;
 }
 
+static PurpleCmdRet honprpl_who(PurpleConversation *conv, const gchar *cmd,
+								  gchar **args, gchar **error, void *userdata) 
+{
+
+	const char *user = args[0];
+	hon_account* hon = conv->account->gc->proto_data;
+	GByteArray* buffer;
+	guint8 packet_id = 0x2a;
+
+	if (!user || strlen(user) == 0) {
+		*error = g_strdup(_("Request is missing nickname."));
+		return PURPLE_CMD_RET_FAILED;
+	} 
+	hon->whois_conv = conv;
+
+	buffer = g_byte_array_new();
+	buffer = g_byte_array_append(buffer,&packet_id,1);
+	buffer = g_byte_array_append(buffer,user,strlen(user)+1);
+	do_write(hon->fd,buffer->data,buffer->len);
+	g_byte_array_free(buffer,TRUE);
+	return PURPLE_CMD_RET_OK;
+}
+
+
+/*
+* prpl stuff. see prpl.h for more information.
+*/
+
+static PurplePluginProtocolInfo prpl_info =
+{
+	OPT_PROTO_CHAT_TOPIC | OPT_PROTO_UNIQUE_CHATNAME,  /* options */
+	NULL,               /* user_splits, initialized in honprpl_init() */
+	NULL,               /* protocol_options, initialized in honprpl_init() */
+	{   /* icon_spec, a PurpleBuddyIconSpec */
+		"",                   /* format */
+			0,                               /* min_width */
+			0,                               /* min_height */
+			0,                             /* max_width */
+			0,                             /* max_height */
+			0,                           /* max_filesize */
+			0,       /* scale_rules */
+	},
+	honprpl_list_icon,                  /* list_icon */
+	honprpl_list_emblem,                                /* list_emblem */
+	honprpl_status_text,                /* status_text */
+	honprpl_tooltip_text,               /* tooltip_text */
+	honprpl_status_types,               /* status_types */
+	honprpl_blist_node_menu,            /* blist_node_menu */
+	honprpl_chat_info,                  /* chat_info */
+	honprpl_chat_info_defaults,         /* chat_info_defaults */
+	honprpl_login,                      /* login */
+	honprpl_close,                      /* close */
+	honprpl_send_im,                    /* send_im */
+	NULL,                   /* set_info */
+	NULL,                /* send_typing */
+	honprpl_get_info,                   /* get_info */
+	NULL,                 /* set_status */
+	NULL,                   /* set_idle */
+	NULL,              /* change_passwd */
+	honprpl_add_buddy,                  /* add_buddy */
+	honprpl_add_buddies,                /* add_buddies */
+	honprpl_remove_buddy,               /* remove_buddy */
+	honprpl_remove_buddies,             /* remove_buddies */
+	NULL,                 /* add_permit */
+	NULL,                   /* add_deny */
+	NULL,                 /* rem_permit */
+	NULL,                   /* rem_deny */
+	NULL,            /* set_permit_deny */
+	honprpl_join_chat,                  /* join_chat */
+	NULL,                /* reject_chat */
+	honprpl_get_chat_name,              /* get_chat_name */
+	NULL,                /* chat_invite */
+	honprpl_chat_leave,                 /* chat_leave */
+	NULL,               /* chat_whisper */
+	honprpl_chat_send,                  /* chat_send */
+	NULL,                                /* keepalive */
+	NULL,              /* register_user */
+	NULL,                /* get_cb_info */
+	NULL,                                /* get_cb_away */
+	NULL,                /* alias_buddy */
+	NULL,                /* group_buddy */
+	NULL,               /* rename_group */
+	NULL,                                /* buddy_free */
+	NULL,               /* convo_closed */
+	honprpl_normalize,                  /* normalize */
+	NULL,             /* set_buddy_icon */
+	NULL,               /* remove_group */
+	NULL,                                /* get_cb_real_name */
+	honprpl_set_chat_topic,             /* set_chat_topic */
+	NULL,                                /* find_blist_chat */
+	honprpl_roomlist_get_list,          /* roomlist_get_list */
+	honprpl_roomlist_cancel,            /* roomlist_cancel */
+	NULL,   /* roomlist_expand_category */
+	NULL,           /* can_receive_file */
+	NULL,                                /* send_file */
+	NULL,                                /* new_xfer */
+	NULL,            /* offline_message */
+	NULL,                                /* whiteboard_prpl_ops */
+	NULL,                                /* send_raw */
+	NULL,                                /* roomlist_room_serialize */
+	NULL,                                /* unregister_user */
+	NULL,                                /* send_attention */
+	NULL,                                /* get_attention_types */
+	sizeof(PurplePluginProtocolInfo),    /* struct_size */
+	NULL,
+	NULL,                                 /* initiate_media */
+	NULL                                  /* can_do_media */	
+};
 static void honprpl_init(PurplePlugin *plugin)
 {
 	PurpleAccountOption *option_store_md5;
@@ -1563,7 +1980,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	prpl_info.protocol_options = g_list_append(NULL, option);
 	prpl_info.protocol_options = g_list_append(prpl_info.protocol_options, option_store_md5);
 
-	/* register whisper chat command, /msg */
+	/* register whisper chat command */
 	purple_cmd_register("whisper",
 		"ws",                  /* args: recipient and message */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
@@ -1580,8 +1997,6 @@ static void honprpl_init(PurplePlugin *plugin)
 		send_whisper,
 		"whisper &lt;message&gt;: send a whisper message",
 		GINT_TO_POINTER(1));                 /* userdata */
-
-	/* register whisper chat command, /msg */
 	purple_cmd_register("w",
 		"ws",                  /* args: recipient and message */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
@@ -1599,23 +2014,45 @@ static void honprpl_init(PurplePlugin *plugin)
 		"whisper &lt;message&gt;: send a whisper message",
 		GINT_TO_POINTER(1));                 /* userdata */
 
+	
+	/* clan commands */
 	purple_cmd_register("clan",
 		"ws",                  /* args: recipient and message */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
 		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
 		"prpl-hon",
 		clan_commands,
-		"clan invite - invite to clan\nother not implemented",
+		_("clan invite - invite to clan\nmessage or m - clan message\nother not implemented"),
 		NULL);   
-	
 	purple_cmd_register("c",
 		"ws",                  /* args: recipient and message */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
 		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
 		"prpl-hon",
 		clan_commands,
-		"clan invite - invite to clan\nmessage or m - clan message\nother not implemented",
+		_("clan invite - invite to clan\nmessage or m - clan message\nother not implemented"),
 		NULL); 
+
+
+	/* whois */
+	purple_cmd_register("whois",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_who,
+		_("Request user status"),
+		NULL); 
+	/* whois */
+	purple_cmd_register("who",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_who,
+		_("Request user status"),
+		NULL); 
+
 
 	_HON_protocol = plugin;
 }

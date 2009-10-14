@@ -5,6 +5,7 @@
 	show Clan's Rank and Join Date in tooltip for clanmate
 	show matchid in tooltip if known
 	fixed chat info, fixes joining room 'HoN' on reconnect
+	/who , /whois
 	
 0.1
 	Initial release

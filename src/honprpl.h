@@ -77,6 +77,13 @@ typedef struct {
 	user_info self;
 	PurpleRoomlist* roomlist;
 	int fd;
+	PurpleConversation* whois_conv;
 } hon_account;
 
+typedef struct {
+	PurpleConnection* gc;
+	const gchar* username;
+	PurpleNotifyUserInfo* info;
+	gchar* account_id;
+} honprpl_info_tmp;
 #endif

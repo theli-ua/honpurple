@@ -6,6 +6,6 @@
 	show matchid in tooltip if known
 	fixed chat info, fixes joining room 'HoN' on reconnect
 	/who , /whois
-	
+	user info	
 0.1
 	Initial release

@@ -24,7 +24,7 @@ void hexdump_g_string_append(
 								 guint32            len);
 
 gchar* hon2html(const gchar* buffer);
-gchar* hon_strip(const gchar* input);
+gchar* hon_strip(const gchar* input,gboolean escape);
 
 #define PHP_INT		'i'
 #define PHP_BOOL	'b'

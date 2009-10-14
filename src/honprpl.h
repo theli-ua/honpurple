@@ -22,8 +22,9 @@
 #define HON_STATUS_ATTR "status"
 #define HON_FLAGS_ATTR "flags"
 #define HON_GAME_ATTR "game"
+#define HON_MATCHID_ATTR "matchid"
 #define HON_SERVER_ATTR "server"
-
+#define HON_BUDDYID_ATTR "buddy_id"
 
 #define HON_BUDDIES_GROUP  "HoN Buddies"
 #define HON_CLANMATES_GROUP  "HoN Clan Roster"

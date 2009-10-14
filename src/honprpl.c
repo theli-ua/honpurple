@@ -255,9 +255,16 @@ static void honprpl_tooltip_text(PurpleBuddy *buddy,
 								 gboolean full) 
 {
 	PurplePresence *presence = purple_buddy_get_presence(buddy);
+	PurpleConnection* gc = buddy->account->gc;
+	hon_account* hon = NULL;
 	PurpleStatus *status = purple_presence_get_active_status(presence);
 	const gchar* server = purple_status_get_attr_string(status, HON_SERVER_ATTR);
 	const gchar* gamename = purple_status_get_attr_string(status, HON_GAME_ATTR);
+	guint32 matchid = purple_status_get_attr_int(status, HON_MATCHID_ATTR);
+	guint32 buddy_id = purple_status_get_attr_int(status, HON_BUDDYID_ATTR);
+	if (gc)
+		hon = gc->proto_data;
+	
 	if (gamename)
 	{
 		purple_notify_user_info_add_pair(info, _("Game"), gamename);
@@ -266,6 +273,32 @@ static void honprpl_tooltip_text(PurpleBuddy *buddy,
 	{
 		purple_notify_user_info_add_pair(info, _("Server"), server);
 	}
+	if (matchid > 0)
+	{
+		gchar* matchstring = g_strdup_printf("%d",matchid);
+		purple_notify_user_info_add_pair(info, _("Match ID"), matchstring);
+		g_free(matchstring);
+	}
+	if (hon && buddy_id)
+	{
+		deserialized_element* data;
+		gchar* buddy_string_id = g_strdup_printf("%d",buddy_id);
+		deserialized_element* clanmate = g_hash_table_lookup(hon->clanmates,buddy_string_id);
+		if (clanmate && ((data = g_hash_table_lookup(clanmate->array,"rank")) != 0))
+		{
+			purple_notify_user_info_add_pair(info, _("Rank"),data->string->str);			
+		}
+		if (clanmate && ((data = g_hash_table_lookup(clanmate->array,"join_date")) != 0))
+		{
+			purple_notify_user_info_add_pair(info, _("Join date"),data->string->str);			
+		}
+		if (clanmate && ((data = g_hash_table_lookup(clanmate->array,"message")) != 0) && data->type != PHP_NULL)
+		{
+			purple_notify_user_info_add_pair(info, _("Message"),data->string->str);			
+		}
+		g_free(buddy_string_id);
+	}
+
 
 	purple_debug_info(HON_DEBUG_PREFIX, "game status: %s\n",
 		gamename);
@@ -288,10 +321,9 @@ static GList *honprpl_status_types(PurpleAccount *acct)
 
 	type = purple_status_type_new_with_attrs(PURPLE_STATUS_AVAILABLE,
 		HON_STATUS_ONLINE_S, NULL, TRUE, TRUE, FALSE,
-		//HON_GAME_ATTR, _("Game"), purple_value_new(PURPLE_TYPE_STRING),
-		//HON_SERVER_ATTR, _("Server"), purple_value_new(PURPLE_TYPE_STRING),
 		HON_STATUS_ATTR, _("Status"), purple_value_new(PURPLE_TYPE_INT),
 		HON_FLAGS_ATTR, _("Flags"), purple_value_new(PURPLE_TYPE_INT),
+		HON_BUDDYID_ATTR, _("Buddy ID"), purple_value_new(PURPLE_TYPE_INT),
 		NULL);
 	types = g_list_prepend(types, type);
 
@@ -299,8 +331,10 @@ static GList *honprpl_status_types(PurpleAccount *acct)
 		HON_STATUS_INGAME_S, NULL, TRUE, FALSE, FALSE,
 		HON_GAME_ATTR, _("Game"), purple_value_new(PURPLE_TYPE_STRING),
 		HON_SERVER_ATTR, _("Server"), purple_value_new(PURPLE_TYPE_STRING),
+		HON_MATCHID_ATTR, _("Match ID"), purple_value_new(PURPLE_TYPE_INT),
 		HON_STATUS_ATTR, _("Status"), purple_value_new(PURPLE_TYPE_INT),
 		HON_FLAGS_ATTR, _("Flags"), purple_value_new(PURPLE_TYPE_INT),
+		HON_BUDDYID_ATTR, _("Buddy ID"), purple_value_new(PURPLE_TYPE_INT),
 		NULL);
 	types = g_list_prepend(types, type);
 
@@ -315,13 +349,15 @@ static GList *honprpl_status_types(PurpleAccount *acct)
 }
 
 static void blist_example_menu_item(PurpleBlistNode *node, gpointer userdata) {
+
 	purple_debug_info(HON_DEBUG_PREFIX, "example menu item clicked on user %s\n",
 		((PurpleBuddy *)node)->name);
-
+#if 0
 	purple_notify_info(NULL,  /* plugin handle or PurpleConnection */
 		_("Primary title"),
 		_("Secondary title"),
 		_("This is the callback for the honprpl menu item."));
+#endif
 }
 
 static GList *honprpl_blist_node_menu(PurpleBlistNode *node) {
@@ -401,12 +437,13 @@ static void initiall_statuses(PurpleConnection *gc,gchar* buffer){
 		if (status == HON_STATUS_INGAME)
 		{
 			gamename = read_string(buffer);
-			gamename = hon_strip(gamename);
+			gamename = hon_strip(gamename,TRUE);
 		}
 		if(!status)
 			status_id = HON_STATUS_OFFLINE_S;
  		purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\n",nick,flags,status,gamename,server);
 		purple_prpl_got_user_status(gc->account, nick, status_id,
+			HON_BUDDYID_ATTR , id,
 			HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
 			server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
 		
@@ -421,7 +458,7 @@ static void user_status(PurpleConnection *gc,gchar* buffer){
 	hon_account* hon = gc->proto_data;
 	guint32 status;
 	guint32 flags;
-	guint32 unknown = 0;
+	guint32 matchid = 0;
 	
 	guint32 id = read_guint32(buffer);
 	status = *buffer++;
@@ -438,16 +475,19 @@ static void user_status(PurpleConnection *gc,gchar* buffer){
 	if (status == HON_STATUS_INGAME)
 	{
 		gamename = read_string(buffer);
-		gamename = hon_strip(gamename);
-		unknown = read_guint32(buffer);
+		gamename = hon_strip(gamename,TRUE);
+		matchid = read_guint32(buffer);
 	}
 	if(!status)
 		status_id = HON_STATUS_OFFLINE_S;
-	purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s unknown:%d\n"
-		,nick,flags,status,gamename,server,clanid,clan,unknown);
+	purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s matchid:%d\n"
+		,nick,flags,status,gamename,server,clanid,clan,matchid);
 	purple_prpl_got_user_status(gc->account, nick, status_id,
 		HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
-		server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
+		HON_BUDDYID_ATTR , id,
+		server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,
+		matchid > 0 ? HON_MATCHID_ATTR : NULL, matchid,
+		NULL);
 	g_free(gamename);
 }
 
@@ -483,7 +523,7 @@ static void got_chanlist(PurpleConnection *gc,gchar* buffer){
 		guint32 id,participants;
 		id = read_guint32(buffer);
 		name = read_string(buffer);
-		colorname = hon_strip(name);
+		colorname = hon_strip(name,FALSE);
 		participants = read_guint32(buffer);
 
 		room = purple_roomlist_room_new(PURPLE_ROOMLIST_ROOMTYPE_ROOM, colorname, NULL);
@@ -516,7 +556,7 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 	unknown = *buffer++;
 	topic_raw = read_string(buffer);
 	topic = hon2html(topic_raw);
-	topic_raw = hon_strip(topic_raw);
+	topic_raw = hon_strip(topic_raw,TRUE);
 	op_count = read_guint32(buffer);
 	if (op_count != 0)
 	{
@@ -1427,7 +1467,7 @@ static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
 	
 	const char *command = args[0];
 	hon_account* hon = conv->account->gc->proto_data;
-	GByteArray* buffer = g_byte_array_new();
+	GByteArray* buffer;
 	GString* msg;
 	guint8 packet_id;
 
@@ -1446,6 +1486,7 @@ static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
 			return PURPLE_CMD_RET_FAILED;
 		}
 		packet_id = 0x47;
+		buffer = g_byte_array_new();
 		buffer = g_byte_array_append(buffer,&packet_id,1);
 		buffer = g_byte_array_append(buffer,args[1],strlen(args[1])+1);
 		do_write(hon->fd,buffer->data,buffer->len);
@@ -1453,6 +1494,7 @@ static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
 		g_string_printf(msg,_("Invited %s to clan"),args[1]);
 		purple_conversation_write(conv, "",msg->str , PURPLE_MESSAGE_SYSTEM|PURPLE_MESSAGE_NO_LOG, time(NULL));
 		g_string_free(msg,TRUE);
+		g_byte_array_free(buffer,TRUE);
 		return PURPLE_CMD_RET_OK;
 	}
 	else if (!g_strcmp0(command,"m") || !g_strcmp0(command,"message"))
@@ -1470,12 +1512,32 @@ static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
 		g_free(message);
 
 		packet_id = 0x13;
+		buffer = g_byte_array_new();
 		buffer = g_byte_array_append(buffer,&packet_id,1);
 		buffer = g_byte_array_append(buffer,args[1],strlen(args[1])+1);
 		do_write(hon->fd,buffer->data,buffer->len);
-
+		g_byte_array_free(buffer,TRUE);
 		return PURPLE_CMD_RET_OK;
 	}
+
+#if 0
+	else
+	{
+		guint32 matchid = 0x006af2ff;
+		//guint32 matchid = 0;
+		gchar* status = "Too bad, it's me - BLACKSMITH!!!";
+		gchar* server = "0.0.0.0";
+		packet_id = 0x10;
+		buffer = g_byte_array_new();
+		buffer = g_byte_array_append(buffer,&packet_id,1);
+		buffer = g_byte_array_append(buffer,status,strlen(status)+1);
+		buffer = g_byte_array_append(buffer,&matchid,4);
+		buffer = g_byte_array_append(buffer,server,strlen(server)+1);
+		do_write(hon->fd,buffer->data,buffer->len);
+		g_byte_array_free(buffer,TRUE);
+		return PURPLE_CMD_RET_OK;
+	}
+#endif
 	
 	
 

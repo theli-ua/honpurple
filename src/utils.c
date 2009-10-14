@@ -288,11 +288,19 @@ gchar* hon2html(const gchar* input){
 	g_free(buf_temp);
 	return g_string_free(decoded,FALSE);
 }
-gchar* hon_strip(const gchar* input){
+gchar* hon_strip(const gchar* input,gboolean escape){
 	GString* decoded = g_string_new(NULL);
-	gchar* buffer = purple_markup_escape_text(input, -1);
-	gchar* buf_temp = buffer;
-	const char* end = buffer + strlen(buffer);
+	gchar* buffer;
+	gchar* buf_temp;
+	const char* end;
+	if (escape)
+	{
+		buffer = purple_markup_escape_text(input, -1);
+	}
+	else
+		buffer = g_strdup(input);
+	buf_temp = buffer;
+	end = buffer + strlen(buffer);
 	while(buffer < end){
 		while((*buffer != '^') && (buffer < end))
 			decoded = g_string_append_c(decoded,*buffer++);

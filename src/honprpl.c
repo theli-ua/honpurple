@@ -1247,6 +1247,7 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 		destroy_php_element,      /* callback called when dialog closed */
 		data);     /* userdata for callback */
 
+	g_free(info_tmp->username);
 	g_free(info_tmp->account_id);
 	g_free(info_tmp);
 }
@@ -1270,6 +1271,7 @@ static void honpurple_info_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer
 			info_tmp->info,      /* body */
 			NULL,      /* callback called when dialog closed */
 			NULL);     /* userdata for callback */
+		g_free(info_tmp->username);
 		g_free(info_tmp);
 	}
 	else
@@ -1294,7 +1296,7 @@ static void honprpl_get_info(PurpleConnection *gc, const char *username) {
 
 	hon_info->info = purple_notify_user_info_new();
 	hon_info->gc = gc;
-	hon_info->username = username;
+	hon_info->username = g_strdup(username);
 
 	purple_debug_info(HON_DEBUG_PREFIX, "Fetching %s's user info for %s\n", username,
 		gc->account->username);

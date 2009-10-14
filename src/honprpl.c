@@ -839,7 +839,7 @@ static int read_recv(PurpleConnection *gc, int sock) {
 	len = read(sock,&packet_length,4);
 	if(len == 4 && packet_length > 0) {
 		gchar* buffer = g_malloc0(packet_length);
-		while (recv(sock, buffer, packet_length,MSG_PEEK) < packet_length && errno == 0);
+		while (recv(sock, buffer, packet_length,MSG_PEEK) < packet_length && (errno == 0 || errno == EAGAIN));
 		len = read(sock, buffer, packet_length);
 		if (len == packet_length)
 		{

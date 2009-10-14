@@ -966,16 +966,10 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 					4);  /* total number of steps */
 
 
-				/* TODO: USE CHAT URL */
-#ifdef THELI_CONNECT_TO_LOCALHOST
-				if (purple_proxy_connect(gc, gc->account, "localhost",HON_CHAT_PORT,
-					hon_login_cb, gc) == NULL)
-#else
  				if (purple_proxy_connect(gc, gc->account, 
  				                         ((deserialized_element*)(g_hash_table_lookup(account_data->array,"chat_url")))->string->str,
  				                         HON_CHAT_PORT,
  					hon_login_cb, gc) == NULL)
-#endif
 				{
 					purple_connection_error_reason (gc,
 						PURPLE_CONNECTION_ERROR_NETWORK_ERROR,
@@ -1021,7 +1015,7 @@ static void honprpl_login(PurpleAccount *acct)
 
 	gc->proto_data = honacc = g_new0(hon_account, 1);
 
-	url_data = purple_util_fetch_url(request_url->str,TRUE,NULL,FALSE,start_hon_session_cb,gc);
+	url_data = purple_util_fetch_url_request_len_with_account(gc->account,request_url->str,TRUE,NULL,FALSE,NULL,FALSE,-1,start_hon_session_cb,gc);
 
 	g_string_free(password_md5,TRUE);
 	g_string_free(request_url,TRUE);  

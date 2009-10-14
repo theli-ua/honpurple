@@ -1,0 +1,10 @@
+0.2
+	proxy support
+	fix for long server packets (fixes room list retreiving)
+	/c m fix for windows build
+	show Clan's Rank and Join Date in tooltip for clanmate
+	show matchid in tooltip if known
+	fixed chat info, fixes joining room 'HoN' on reconnect
+	
+0.1
+	Initial release

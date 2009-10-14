@@ -743,7 +743,7 @@ static void got_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
 		}
 		break;
 	case 0x2e:
-		message = g_strdup_printf(_("User %s is ingame, game name %s, game time %s"),user,buffer,buffer + (strlen(buffer) + 1));
+		message = g_strdup_printf(_("User %s is ingame, game name: %s, game time: %s"),user,buffer,buffer + (strlen(buffer) + 1));
 		break;
 	}
 
@@ -1142,6 +1142,13 @@ static int honprpl_send_im(PurpleConnection *gc, const char *who,
 
 	return 1;
 }
+#define fetch_info_row(x,y) 	\
+			if ((info_row = g_hash_table_lookup(needed_data->array,x)) != NULL\
+				&& info_row->type == PHP_STRING\
+				)\
+				purple_notify_user_info_add_pair(info_tmp->info, _(y), info_row->string->str);
+
+
 static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	honprpl_info_tmp* info_tmp = user_data;
 	PurpleConnection *gc = info_tmp->gc;
@@ -1165,24 +1172,9 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 			&& needed_data->type == PHP_ARRAY
 			)
 		{
-			if ((info_row = g_hash_table_lookup(needed_data->array,"name")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Clan Name"), info_row->string->str);
-			}
-			if ((info_row = g_hash_table_lookup(needed_data->array,"tag")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Clan Tag"), info_row->string->str);
-			}
-			if ((info_row = g_hash_table_lookup(needed_data->array,"rank")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Clan Rank"), info_row->string->str);
-			}
+			fetch_info_row("name","Clan Name")
+			fetch_info_row("tag","Clan Tag")
+			fetch_info_row("rank","Clan Rank")
 		}
 
 		if (
@@ -1192,280 +1184,50 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 			&& needed_data->type == PHP_ARRAY
 			)
 		{
-			if ((info_row = g_hash_table_lookup(needed_data->array,"level")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Level"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_exp")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Current XP"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_wins")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Wins"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_losses")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Losses"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_concedes")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Concedes"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_concedevotes")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Concede Votes"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_kicked")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Kicks"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_pub_skill")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Current PUB Skill"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_herokills")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Kills"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_deaths")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Deaths"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_buybacks")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Hero Buy Backs"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_herodmg")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Damage to Heroes"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_heroexp")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("XP From Hero Kills"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_heroassists")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Hero Kill Assists"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_denies")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Total Kills Denied"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_exp_denied")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Total XP Denied"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_teamcreepkills")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Enemy Creep Kills"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_teamcreepdmg")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Enemy Creep Damage"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_teamcreepexp")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Enemy Creep XP"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_neutralcreepkills")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Neutral Creep Kills"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_neutralcreepdmg")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Neutral Creep Damage"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_neutralcreepexp")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Neutral Creep XP"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_razed")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Buildings Razed"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_bdmg")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Total Building Damage"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_gold")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Total Gold Farmed"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_herokillsgold")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Gold From Hero Kills"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_teamcreepgold")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Gold From Enemy Creeps"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_neutralcreepgold")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Gold From Neutral Creeps"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_bgold")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Gold From Buildings"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_goldlost2death")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Gold Lost To Death"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_gold_spent")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Total Gold Spent"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_secs")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Total Seconds Played"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_secs_dead")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Total Seconds Dead"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_actions")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Total Actions performed"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_consumables")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Total Consumables Used"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"acc_wards")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Total Wards Used"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"create_date")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Account Created"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"last_login")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Last Login"), info_row->string->str);
-			}
-
-			if ((info_row = g_hash_table_lookup(needed_data->array,"last_activity")) != NULL
-				&& info_row->type == PHP_STRING
-				)
-			{
-				purple_notify_user_info_add_pair(info_tmp->info, _("Last Activity"), info_row->string->str);
-			}
+			fetch_info_row("level","Level")
+			fetch_info_row("acc_exp","Current XP")
+			fetch_info_row("acc_wins","Wins")
+			fetch_info_row("acc_losses","Losses")
+			fetch_info_row("acc_games_played","Games Played")
+			fetch_info_row("acc_concedes","Concedes")
+			fetch_info_row("acc_concedevotes","Concede Votes")
+			fetch_info_row("acc_kicked","Kicks")
+			fetch_info_row("acc_discos","Disconnects")
+			fetch_info_row("acc_pub_skill","Current PUB Skill")
+			fetch_info_row("acc_herokills","Kills")
+			fetch_info_row("acc_deaths","Deaths")
+			fetch_info_row("acc_buybacks","Hero Buy Backs")
+			fetch_info_row("acc_herodmg","Damage to Heroes")
+			fetch_info_row("acc_heroexp","XP From Hero Kills")
+			fetch_info_row("acc_heroassists","Hero Kill Assists")
+			fetch_info_row("acc_denies","Total Kills Denied")
+			fetch_info_row("acc_exp_denied","Total XP Denied")
+			fetch_info_row("acc_teamcreepkills","Enemy Creep Kills")
+			fetch_info_row("acc_teamcreepdmg","Enemy Creep Damage")
+			fetch_info_row("acc_teamcreepexp","Enemy Creep XP")
+			fetch_info_row("acc_neutralcreepkills","Neutral Creep Kills")
+			fetch_info_row("acc_neutralcreepdmg","Neutral Creep Damage")
+			fetch_info_row("acc_neutralcreepexp","Neutral Creep XP")
+			fetch_info_row("acc_razed","Buildings Razed")
+			fetch_info_row("acc_bdmg","Total Building Damage")
+			fetch_info_row("acc_bdmgexp","XP from buidings")
+			fetch_info_row("acc_gold","Total Gold Farmed")
+			fetch_info_row("acc_herokillsgold","Gold From Hero Kills")
+			fetch_info_row("acc_teamcreepgold","Gold From Enemy Creeps")
+			fetch_info_row("acc_neutralcreepgold","Gold From Neutral Creeps")
+			fetch_info_row("acc_bgold","Gold From Buildings")
+			fetch_info_row("acc_goldlost2death","Gold Lost To Death")
+			fetch_info_row("acc_gold_spent","Total Gold Spent")
+			fetch_info_row("acc_secs","Total Seconds Played")
+			fetch_info_row("acc_secs_dead","Total Seconds Dead")
+			fetch_info_row("acc_actions","Total Actions performed")
+			fetch_info_row("acc_consumables","Total Consumables Used")
+			fetch_info_row("acc_wards","Total Wards Used")
+			fetch_info_row("create_date","Account Created")
+			fetch_info_row("last_login","Last Login")
+			fetch_info_row("last_activity","Last Activity")
+	
 			/* unused:
-			acc_discos: 6
 			minXP: 1741932
 			nickname: dancercod
 			APEM: 0
@@ -1475,8 +1237,6 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 			acc_avg_score: 0.00
 			AR: 0
 			AREM: 0
-			acc_games_played: 116
-			acc_bdmgexp: 0
 			*/
 		}
 
@@ -1490,6 +1250,7 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 	g_free(info_tmp->account_id);
 	g_free(info_tmp);
 }
+#undef fetch_info_row
 static void honpurple_info_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	honprpl_info_tmp* info_tmp = user_data;
 	PurpleConnection *gc = info_tmp->gc;

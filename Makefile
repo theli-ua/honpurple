@@ -5,14 +5,11 @@ VERSION := $(shell cat src/honprpl.h | sed -n 's/.*DISPLAY_VERSION.*"\(.*\)"/\1/
 
 all: 
 	@make -C src all
-$(TARGET): 
-	@make -C src $(TARGET)
-
 clean:
 	@make -C src clean
 	rm -rf deb dist
 
-install: $(TARGET)
+install: all
 	mkdir -p ~/.purple/plugins/
 	cp $(TARGET) ~/.purple/plugins/
 

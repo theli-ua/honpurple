@@ -1193,7 +1193,7 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 			fetch_info_row("acc_concedevotes","Concede Votes")
 			fetch_info_row("acc_kicked","Kicks")
 			fetch_info_row("acc_discos","Disconnects")
-			fetch_info_row("acc_pub_skill","Current PUB Skill")
+			fetch_info_row("acc_pub_skill","Public Skill Rating (PSR)")
 			fetch_info_row("acc_herokills","Kills")
 			fetch_info_row("acc_deaths","Deaths")
 			fetch_info_row("acc_buybacks","Hero Buy Backs")

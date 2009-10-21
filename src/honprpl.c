@@ -556,7 +556,7 @@ static void entered_chat(PurpleConnection *gc,gchar* buffer)
 	unknown = *buffer++;
 	topic_raw = read_string(buffer);
 	topic = hon2html(topic_raw);
-	topic_raw = hon_strip(topic_raw,TRUE);
+	topic_raw = hon_strip(topic_raw,FALSE);
 	op_count = read_guint32(buffer);
 	if (op_count != 0)
 	{

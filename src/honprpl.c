@@ -1128,18 +1128,22 @@ static int honprpl_send_im(PurpleConnection *gc, const char *who,
 	hon_account* hon = gc->proto_data;
 	GByteArray* buff = g_byte_array_new();
 	guint8 packet_id = 0x1C;
+	char *plain;
+	purple_markup_html_to_xhtml(message, NULL, &plain);
+
 #ifdef _DEBUG
 	purple_debug_info(HON_DEBUG_PREFIX, "sending message from %s to %s: %s\n",
 		from_username, who, message);
 #endif
 	buff = g_byte_array_append(buff,&packet_id,1);
 	buff = g_byte_array_append(buff,who,strlen(who) + 1);
-	buff = g_byte_array_append(buff,message,strlen(message) + 1);
+	buff = g_byte_array_append(buff,plain,strlen(plain) + 1);
 
 	do_write(hon->fd,buff->data,buff->len);
 
 	g_byte_array_free(buff,TRUE);
 
+	g_free(plain);
 	return 1;
 }
 #define fetch_info_row(x,y) 	\
@@ -1416,13 +1420,16 @@ static int honprpl_chat_send(PurpleConnection *gc, int id, const char *message,
 	hon_account* hon = gc->proto_data;
 	gchar* coloredmessage = hon2html(message);
 	guint8 packet_id = 0x03;
+	char *plain;
+	purple_markup_html_to_xhtml(message, NULL, &plain);
 	buffer = g_byte_array_append(buffer,&packet_id,1);
-	buffer = g_byte_array_append(buffer,message,strlen(message)+1);
+	buffer = g_byte_array_append(buffer,plain,strlen(plain)+1);
 	buffer = g_byte_array_append(buffer,(guint8*)&id,4);
 	do_write(hon->fd,buffer->data,buffer->len);
 	g_byte_array_free(buffer,TRUE);
 	serv_got_chat_in(gc,id,hon->self.nickname,PURPLE_MESSAGE_SEND,coloredmessage,time(NULL));
 	g_free(coloredmessage);
+	g_free(plain);
 	return 0;
 }
 

@@ -2,7 +2,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 #include <errno.h>
 
 
@@ -707,6 +706,29 @@ static void got_clan_whisper(PurpleConnection *gc,gchar* buffer){
 	}
 	g_free(message);
 }
+static void got_chat_topic(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
+	PurpleConversation *convo;
+	hon_account* hon = gc->proto_data;
+	gchar * topic_raw, * topic_html, * msg;
+	guint32 chan_id = read_guint32(buffer);
+
+	convo = purple_find_chat(gc,chan_id);
+	if (!convo) {
+		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got a topic for %d, which doesn't exist\n", chan_id);
+		return;
+	}
+	topic_raw = hon_strip(buffer,FALSE);
+	topic_html = hon2html(buffer);
+	msg = g_strdup_printf(_("%s has changed the topic to: %s"), "someone", topic_html);
+
+	purple_conv_chat_set_topic(PURPLE_CONV_CHAT(convo), NULL, topic_raw);
+	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+
+	g_free(topic_raw);
+	g_free(topic_html);
+	g_free(msg);
+}
+
 static void got_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
 	hon_account* hon = gc->proto_data;
 	/* TODO: this is not right .. conversation could be closed already */
@@ -819,6 +841,8 @@ static void parse_packet(PurpleConnection *gc, gchar* buffer, int packet_length)
 	case 0x2d:
 	case 0x2e:
 		got_userinfo(gc,buffer,packet_id);
+	case 0x30:
+		got_chat_topic(gc,buffer,packet_id);
 	default:
 		hexdump = g_string_new(NULL);
 		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
@@ -1438,6 +1462,14 @@ static int honprpl_chat_send(PurpleConnection *gc, int id, const char *message,
 static void honprpl_set_chat_topic(PurpleConnection *gc, int id,
 								   const char *topic)
 {
+	hon_account* hon = gc->proto_data;
+	GByteArray* buffer = g_byte_array_new();
+	guint8 packet_id = 0x30;
+	buffer = g_byte_array_append(buffer,&packet_id,1);
+	buffer = g_byte_array_append(buffer,(guint8*)&id,4);
+	buffer = g_byte_array_append(buffer,topic,strlen(topic)+1);
+	do_write(hon->fd,buffer->data,buffer->len);
+	g_byte_array_free(buffer,TRUE);
 }
 
 static PurpleRoomlist *honprpl_roomlist_get_list(PurpleConnection *gc) {
@@ -1646,8 +1678,14 @@ static PurpleCmdRet honprpl_who(PurpleConversation *conv, const gchar *cmd,
 	g_byte_array_free(buffer,TRUE);
 	return PURPLE_CMD_RET_OK;
 }
+static PurpleCmdRet honprpl_topic(PurpleConversation *conv, const gchar *cmd,
+								gchar **args, gchar **error, void *userdata) 
+{
 
-
+	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+	honprpl_set_chat_topic(conv->account->gc,chat->id,args[0]);
+	return PURPLE_CMD_RET_OK;
+}
 /*
 * prpl stuff. see prpl.h for more information.
 */
@@ -1823,6 +1861,15 @@ static void honprpl_init(PurplePlugin *plugin)
 		_("Request user status"),
 		NULL); 
 
+	/* topic */
+	purple_cmd_register("topic",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_topic,
+		_("Set channel topic"),
+		NULL); 
 
 	_HON_protocol = plugin;
 }

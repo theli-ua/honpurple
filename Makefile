@@ -15,7 +15,7 @@ install: all
 
 sdist:
 	mkdir -p dist
-	tar -cvjpf --exclude .svn dist/honpurple-$(VERSION).tar.bz2 data src Makefile*
+	tar -cvjp --exclude .svn -f dist/honpurple-$(VERSION).tar.bz2 data src Makefile*
 
 deb_common: all
 	mkdir -p dist

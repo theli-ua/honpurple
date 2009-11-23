@@ -913,8 +913,8 @@ static void read_cb(gpointer data, gint source, PurpleInputCondition cond) {
 	if(! ret) {
 
 		purple_connection_error_reason(gc,
-			PURPLE_CONNECTION_ERROR_NETWORK_ERROR,
-			_("Server closed the connection"));
+			PURPLE_CONNECTION_ERROR_NAME_IN_USE,
+			_("Server closed the connection\n that, probably, means that you connected from hon"));
 
 	} else if(ret < 0) {
 		const gchar *err_str = g_strerror(err);

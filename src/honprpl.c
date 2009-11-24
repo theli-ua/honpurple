@@ -392,30 +392,46 @@ static GHashTable *honprpl_chat_info_defaults(PurpleConnection *gc,
     pass it to the parser, passing back the return code from the read
     call for handling in read_cb 
 */
-static int read_recv(PurpleConnection *gc, int sock) {
-	int packet_length,len;
-	len = read(sock,&packet_length,4);
-	if(len == 4 && packet_length > 0) {
-		gchar* buffer = g_malloc0(packet_length);
-		while (recv(sock, buffer, packet_length,MSG_PEEK) < packet_length && (errno == 0 || errno == EAGAIN));
-		len = read(sock, buffer, packet_length);
-		if (len == packet_length)
-		{
-			hon_parse_packet(gc,buffer,packet_length);
-		} 
-		else
-		{
-			len = -1;
-		}
-		g_free(buffer);
+static int honprpl_read_recv(PurpleConnection *gc, int sock) {
+	int packet_length = 1,len = 0;
+	hon_account* hon = gc->proto_data;
+	gchar* buff = NULL;
+
+	if (hon->got_length == 0)
+	{
+		len += read(sock,&packet_length,4);
+		hon->databuff = g_byte_array_new();
+		hon->got_length = packet_length;
 	}
+
+	if (packet_length == 0)
+		return len;
+	
+	packet_length = hon->got_length - hon->databuff->len;
+	buff = g_malloc0(packet_length);
+
+	packet_length = recv(sock,buff,packet_length,0);
+	len += packet_length;
+
+	hon->databuff = g_byte_array_append(hon->databuff,buff,packet_length);
+
+	if (hon->databuff->len == hon->got_length)
+	{
+		hon_parse_packet(gc,hon->databuff->data,hon->databuff->len);
+		g_byte_array_free(hon->databuff,TRUE);
+		hon->databuff = NULL;
+		hon->got_length = 0;
+	}
+
+	if (recv(sock, &packet_length,sizeof(&packet_length) ,MSG_PEEK) > 0)
+		len += honprpl_read_recv(gc,sock);
 	return len;
 }
 
 
 /** callback triggered from purple_input_add, watches the socked for
     available data to be processed by the session */
-static void read_cb(gpointer data, gint source, PurpleInputCondition cond) {
+static void honprpl_read_callback(gpointer data, gint source, PurpleInputCondition cond) {
 	PurpleConnection *gc = data;
 	hon_account *hon = gc->proto_data;
 
@@ -423,7 +439,7 @@ static void read_cb(gpointer data, gint source, PurpleInputCondition cond) {
 
 	g_return_if_fail(hon != NULL);
 
-	ret = read_recv(gc, hon->fd);
+	ret = honprpl_read_recv(gc, hon->fd);
 
 	/* normal operation ends here */
 	if(ret > 0) return;
@@ -465,7 +481,7 @@ static void read_cb(gpointer data, gint source, PurpleInputCondition cond) {
 }
 
 
-static void hon_login_cb(gpointer data, gint source, const gchar *error_message)
+static void honprpl_login_callback(gpointer data, gint source, const gchar *error_message)
 {
 
 	PurpleConnection *gc = data;
@@ -488,12 +504,12 @@ static void hon_login_cb(gpointer data, gint source, const gchar *error_message)
 	setsockopt(source,SOL_TCP, TCP_NODELAY, &on, sizeof (on));
 #endif
 
-	if(hon_send_login(gc,hon->self.nickname,hon->cookie)){
+	if(hon_send_login(gc,hon->cookie)){
 		purple_connection_update_progress(gc, _("Authenticating"),
 			2,   /* which connection step this is */
 			4);  /* total number of steps */
 		gc->inpa = purple_input_add(source, PURPLE_INPUT_READ,
-			read_cb, gc);
+			honprpl_read_callback, gc);
 	}
 	else
 	{
@@ -598,7 +614,7 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
  				if (purple_proxy_connect(gc, gc->account, 
  				                         ((deserialized_element*)(g_hash_table_lookup(account_data->array,"chat_url")))->string->str,
  				                         HON_CHAT_PORT,
- 					hon_login_cb, gc) == NULL)
+ 					honprpl_login_callback, gc) == NULL)
 				{
 					purple_connection_error_reason (gc,
 						PURPLE_CONNECTION_ERROR_NETWORK_ERROR,
@@ -650,6 +666,7 @@ static void honprpl_login(PurpleAccount *acct)
 	g_string_free(request_url,TRUE);  
 
 	honacc->account_data = NULL;
+	honacc->got_length = 0;
 	honacc->id2nick = g_hash_table_new_full(g_direct_hash,g_direct_equal,NULL,g_free);
 }
 
@@ -662,6 +679,7 @@ static void honprpl_close(PurpleConnection *gc)
 		purple_input_remove(gc->inpa);
 	g_hash_table_destroy(hon->id2nick);
 	destroy_php_element(hon->account_data);
+	g_byte_array_free(hon->databuff,TRUE);
 	g_free(hon);
 	gc->proto_data = NULL;
 }
@@ -1002,7 +1020,7 @@ static void honprpl_roomlist_cancel(PurpleRoomlist *list) {
 
 }
 
-static PurpleCmdRet send_whisper(PurpleConversation *conv, const gchar *cmd,
+static PurpleCmdRet honprpl_send_whisper(PurpleConversation *conv, const gchar *cmd,
 								 gchar **args, gchar **error, void *userdata) 
 {
 	const char *to_username;
@@ -1044,7 +1062,7 @@ static PurpleCmdRet send_whisper(PurpleConversation *conv, const gchar *cmd,
 	
 }
 
-static PurpleCmdRet clan_commands(PurpleConversation *conv, const gchar *cmd,
+static PurpleCmdRet honprpl_clan_commands(PurpleConversation *conv, const gchar *cmd,
 								 gchar **args, gchar **error, void *userdata) 
 {
 	
@@ -1247,7 +1265,7 @@ static void honprpl_init(PurplePlugin *plugin)
 		PURPLE_CMD_P_DEFAULT,  /* priority */
 		PURPLE_CMD_FLAG_CHAT  ,
 		"prpl-hon",
-		send_whisper,
+		honprpl_send_whisper,
 		"whisper &lt;username&gt; &lt;message&gt;: send a whisper message",
 		GINT_TO_POINTER(0));                 /* userdata */
 	purple_cmd_register("whisper",
@@ -1255,7 +1273,7 @@ static void honprpl_init(PurplePlugin *plugin)
 		PURPLE_CMD_P_DEFAULT,  /* priority */
 		PURPLE_CMD_FLAG_IM,
 		"prpl-hon",
-		send_whisper,
+		honprpl_send_whisper,
 		"whisper &lt;message&gt;: send a whisper message",
 		GINT_TO_POINTER(1));                 /* userdata */
 	purple_cmd_register("w",
@@ -1263,7 +1281,7 @@ static void honprpl_init(PurplePlugin *plugin)
 		PURPLE_CMD_P_DEFAULT,  /* priority */
 		PURPLE_CMD_FLAG_CHAT  ,
 		"prpl-hon",
-		send_whisper,
+		honprpl_send_whisper,
 		"whisper &lt;username&gt; &lt;message&gt;: send a whisper message",
 		GINT_TO_POINTER(0));                 /* userdata */
 	purple_cmd_register("w",
@@ -1271,7 +1289,7 @@ static void honprpl_init(PurplePlugin *plugin)
 		PURPLE_CMD_P_DEFAULT,  /* priority */
 		PURPLE_CMD_FLAG_IM,
 		"prpl-hon",
-		send_whisper,
+		honprpl_send_whisper,
 		"whisper &lt;message&gt;: send a whisper message",
 		GINT_TO_POINTER(1));                 /* userdata */
 
@@ -1282,7 +1300,7 @@ static void honprpl_init(PurplePlugin *plugin)
 		PURPLE_CMD_P_DEFAULT,  /* priority */
 		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
 		"prpl-hon",
-		clan_commands,
+		honprpl_clan_commands,
 		_("clan invite - invite to clan\nmessage or m - clan message\nother not implemented"),
 		NULL);   
 	purple_cmd_register("c",
@@ -1290,7 +1308,7 @@ static void honprpl_init(PurplePlugin *plugin)
 		PURPLE_CMD_P_DEFAULT,  /* priority */
 		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
 		"prpl-hon",
-		clan_commands,
+		honprpl_clan_commands,
 		_("clan invite - invite to clan\nmessage or m - clan message\nother not implemented"),
 		NULL); 
 

@@ -497,7 +497,7 @@ void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
 gboolean hon_send_pong(PurpleConnection *gc){
 	return hon_send_packet(gc,0x02,"");
 }
-gboolean hon_send_login(PurpleConnection *gc, const gchar* username, const gchar* cookie){
+gboolean hon_send_login(PurpleConnection *gc, const gchar* cookie){
 	hon_account* hon = gc->proto_data;
 	return hon_send_packet(gc,0xFF,"isi",hon->self.account_id,hon->cookie,2);
 }

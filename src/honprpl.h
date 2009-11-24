@@ -62,6 +62,8 @@ typedef struct {
 	PurpleRoomlist* roomlist;
 	int fd;
 	PurpleConversation* whois_conv;
+	guint32 got_length;
+	GByteArray* databuff;
 } hon_account;
 
 typedef struct {

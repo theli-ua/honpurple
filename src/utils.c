@@ -12,6 +12,7 @@ static char *s2_colors[10] = {
 	 };
 
 
+
 GString* get_md5_string(gchar* input){
 	PurpleCipher *cipher;
 	PurpleCipherContext *context;

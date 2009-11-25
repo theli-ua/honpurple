@@ -1,4 +1,5 @@
 #include "hon.h"
+#include "packet_id.h"
 #include "debug.h"
 #include <stdarg.h>
 
@@ -38,6 +39,7 @@ static gboolean hon_send_packet(PurpleConnection* gc,guint8 packet_id,const gcha
 		}
 		paramstring++;
 	}
+	va_end(marker);
 	res = buffer->len == do_write(hon->fd,buffer->data,buffer->len);
 	g_byte_array_free(buffer,TRUE);
 	return res;
@@ -66,20 +68,20 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 #endif
 	switch (packet_id)
 	{
-	case 0x00: /* logged on ! */
+	case HON_SC_AUTH_ACCEPTED/*0x00*/: /* logged on ! */
 		purple_connection_update_progress(gc, _("Connected"),
 			3,   /* which connection step this is */
 			4);  /* total number of steps */
 		purple_connection_set_state(gc, PURPLE_CONNECTED);
 		break;
-	case 0x01:
+	case HON_SC_PING/*0x01*/:
 		hon_send_pong(gc);
 		purple_debug_info(HON_DEBUG_PREFIX, "server ping, sending pong\n");
 		break;
-	case 0x03:
+	case HON_SC_CHANNEL_MSG/*0x03*/:
 		hon_parse_chat_message(gc,buffer);
 		break;
-	case 0x04:
+	case HON_SC_CHANGED_CHANNEL/*0x04*/:
 #ifdef _DEBUG
 		hexdump = g_string_new(NULL);
 		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
@@ -88,19 +90,19 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 #endif
 		hon_parse_chat_entering(gc,buffer);
 		break;
-	case 0x05:
+	case HON_SC_JOINED_CHANNEL/*0x05*/:
 		hon_parse_chat_join(gc,buffer);
 		break;
-	case 0x06:
+	case HON_SC_LEFT_CHANNEL/*0x06*/:
 		hon_parse_chat_leave(gc,buffer);
 		break;
-	case 0x08:
+	case HON_SC_WHISPER/*0x08*/:
 		hon_parse_pm_whisper(gc,buffer,TRUE);
 		break;
-	case 0x0B:
+	case HON_SC_INITIAL_STATUS/*0x0B*/:
 		hon_parse_initiall_statuses(gc,buffer);
 		break;
-	case 0x0C:
+	case HON_SC_UPDATE_STATUS/*0x0C*/:
 #ifdef _DEBUG
 		hexdump = g_string_new(NULL);
 		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
@@ -109,21 +111,21 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 #endif
 		hon_parse_user_status(gc,buffer);
 		break;
-	case 0x13:
+	case HON_SC_CLAN_MESSAGE/*0x13*/:
 		hon_parse_clan_message(gc,buffer);
 		break;
-	case 0x1C:
+	case HON_SC_PM/*0x1C*/:
 		hon_parse_pm_whisper(gc,buffer,FALSE);
 		break;
-	case 0x1F:
+	case HON_SC_CHANNEL_LIST/*0x1F*/:
 		hon_parse_channel_list(gc,buffer);
 		break;
-	case 0x2b:
-	case 0x2c:
-	case 0x2d:
-	case 0x2e:
+	case HON_SC_USER_INFO_NO_EXIST/*0x2b*/:
+	case HON_SC_USER_INFO_OFFLINE/*0x2c*/:
+	case HON_SC_USER_INFO_ONLINE/*0x2d*/:
+	case HON_SC_USER_INFO_IN_GAME/*0x2e*/:
 		hon_parse_userinfo(gc,buffer,packet_id);
-	case 0x30:
+	case HON_SC_UPDATE_TOPIC/*0x30*/:
 		hon_parse_chat_topic(gc,buffer,packet_id);
 	default:
 		hexdump = g_string_new(NULL);
@@ -495,39 +497,39 @@ void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
 
 /* packet creators */
 gboolean hon_send_pong(PurpleConnection *gc){
-	return hon_send_packet(gc,0x02,"");
+	return hon_send_packet(gc,HON_CS_PONG/*0x02*/,"");
 }
 gboolean hon_send_login(PurpleConnection *gc, const gchar* cookie){
 	hon_account* hon = gc->proto_data;
-	return hon_send_packet(gc,0xFF,"isi",hon->self.account_id,hon->cookie,2);
+	return hon_send_packet(gc,HON_CS_AUTH_INFO/*0xFF*/,"isi",hon->self.account_id,hon->cookie,2);
 }
 gboolean hon_send_pm(PurpleConnection* gc,const gchar *username,const gchar* message){
-	return hon_send_packet(gc,0x1C,"ss",username,message);
+	return hon_send_packet(gc,HON_CS_PM/*0x1C*/,"ss",username,message);
 }
 gboolean hon_send_join_chat(PurpleConnection* gc,const gchar *room){
-	return hon_send_packet(gc,0x1e,"s",room);
+	return hon_send_packet(gc,HON_CS_JOIN_CHANNEL/*0x1e*/,"s",room);
 }
 gboolean hon_send_leave_chat(PurpleConnection* gc,guint32 id){
-	return hon_send_packet(gc,0x22,"i",id);
+	return hon_send_packet(gc,HON_CS_LEAVE_CHANNEL/*0x22*/,"i",id);
 }
 gboolean hon_send_chat_message(PurpleConnection *gc, guint32 id, const char *message){
-	return hon_send_packet(gc,0x03,"is",id,message);
+	return hon_send_packet(gc,HON_CS_CHANNEL_MSG/*0x03*/,"is",id,message);
 }
 gboolean hon_send_chat_topic(PurpleConnection *gc, guint32 id, const char *topic){
-	return hon_send_packet(gc,0x30,"is",id,topic);
+	return hon_send_packet(gc,HON_CS_UPDATE_TOPIC/*0x30*/,"is",id,topic);
 }
 gboolean hon_send_room_list_request(PurpleConnection *gc){
-	return hon_send_packet(gc,0x1F,"");
+	return hon_send_packet(gc,HON_CS_CHANNEL_LIST/*0x1F*/,"");
 }
 gboolean hon_send_whisper(PurpleConnection* gc,const gchar *username,const gchar* message){
-	return hon_send_packet(gc,0x08,"ss",username,message);
+	return hon_send_packet(gc,HON_CS_WHISPER/*0x08*/,"ss",username,message);
 }
 gboolean hon_send_clan_invite(PurpleConnection* gc,const gchar *username){
-	return hon_send_packet(gc,0x47,"s",username);
+	return hon_send_packet(gc,HON_CS_CLAN_ADD_MEMBER/*0x47*/,"s",username);
 }
 gboolean hon_send_clan_message(PurpleConnection* gc,const gchar *message){
-	return hon_send_packet(gc,0x13,"s",message);
+	return hon_send_packet(gc,HON_CS_CLAN_MESSAGE/*0x13*/,"s",message);
 }
 gboolean hon_send_whois(PurpleConnection* gc,const gchar *username){
-	return hon_send_packet(gc,0x2a,"s",username);
+	return hon_send_packet(gc,HON_CS_USER_INFO/*0x2a*/,"s",username);
 }

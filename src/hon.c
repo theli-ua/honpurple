@@ -2,6 +2,7 @@
 #include "packet_id.h"
 #include "debug.h"
 #include <stdarg.h>
+#include <notify.h>
 
 /*
 	Macroses and utilities
@@ -111,6 +112,9 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 #endif
 		hon_parse_user_status(gc,buffer);
 		break;
+	case HON_SC_NOTIFICATION/*0x12*/:
+		hon_parse_notification(gc,buffer);
+		break;
 	case HON_SC_CLAN_MESSAGE/*0x13*/:
 		hon_parse_clan_message(gc,buffer);
 		break;
@@ -134,6 +138,26 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 		g_string_free(hexdump,TRUE);
 		break;
 	}
+}
+void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
+	guint32 status,flags;
+	hon_account* hon = gc->proto_data;
+	guint8 notification_type = *buffer++;
+	gchar* title = NULL;
+	switch (notification_type)
+	{
+	case HON_NOTIFICATION_ADDED_AS_BUDDY:
+		title = g_strdup(_("User added you as buddy"));
+		break;
+	case HON_NOTIFICATION_REMOVED_AS_BUDDY:
+		title = g_strdup(_("User removed you as buddy"));
+		break;
+	default :
+		title = g_strdup_printf(_("Unknown notification type (%d)"),notification_type);
+		break;
+	}
+	purple_notify_info(NULL,title,buffer,NULL);
+	g_free(title);
 }
 void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 	guint32 status,flags;

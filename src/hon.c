@@ -361,6 +361,8 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 		purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d\n",
 			nickname,account_id,status,flags);
 
+		flags |= GPOINTER_TO_INT(g_hash_table_lookup(ops,GINT_TO_POINTER(account_id)));
+
 		purple_flags = PURPLE_CBFLAGS_NONE;
 
 		if (flags & HON_FLAGS_CHAT_FOUNDER)

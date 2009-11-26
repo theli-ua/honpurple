@@ -38,11 +38,15 @@ void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id);
 void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length);
 void hon_parse_notification(PurpleConnection *gc,gchar* buffer);
 void hon_parse_global_notification(PurpleConnection *gc,gchar* buffer);
+void hon_parse_max_channels(PurpleConnection *gc,gchar* buffer);
+void hon_parse_whisper_failed(PurpleConnection *gc,gchar* buffer);
+void hon_parse_pm_failed(PurpleConnection *gc,gchar* buffer);
+
 gboolean hon_send_pong(PurpleConnection *gc);
 gboolean hon_send_login(PurpleConnection *gc,const gchar* cookie);
 gboolean hon_send_pm(PurpleConnection* gc,const gchar *username,const gchar* message);
 gboolean hon_send_join_chat(PurpleConnection* gc,const gchar *room);
-gboolean hon_send_leave_chat(PurpleConnection* gc,guint32 id);
+gboolean hon_send_leave_chat(PurpleConnection* gc,gchar* name);
 gboolean hon_send_chat_message(PurpleConnection *gc, guint32 id, const char *message);
 gboolean hon_send_chat_topic(PurpleConnection *gc, guint32 id, const char *topic);
 gboolean hon_send_room_list_request(PurpleConnection *gc);
@@ -50,7 +54,4 @@ gboolean hon_send_whisper(PurpleConnection* gc,const gchar *username,const gchar
 gboolean hon_send_clan_invite(PurpleConnection* gc,const gchar *username);
 gboolean hon_send_clan_message(PurpleConnection* gc,const gchar *message);
 gboolean hon_send_whois(PurpleConnection* gc,const gchar *username);
-
-
-
 #endif

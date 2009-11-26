@@ -14,6 +14,7 @@
 #define	 HON_SC_CLAN_MESSAGE 	 0x13
 #define	 HON_SC_LOOKING_FOR_CLAN 	 0x18
 #define	 HON_SC_PM 	 0x1C
+#define	 HON_SC_PM_FAILED 	 0x1D
 #define	 HON_SC_CHANNEL_LIST 	 0x1F
 #define	 HON_SC_WHISPER_BUDDIES 	 0x20
 #define	 HON_SC_MAX_CHANNELS 	 0x21

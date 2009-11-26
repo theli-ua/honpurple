@@ -100,6 +100,9 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_WHISPER/*0x08*/:
 		hon_parse_pm_whisper(gc,buffer,TRUE);
 		break;
+	case HON_SC_WHISPER_FAILED/*0x09*/:
+		hon_parse_whisper_failed(gc,buffer);
+		break;
 	case HON_SC_INITIAL_STATUS/*0x0B*/:
 		hon_parse_initiall_statuses(gc,buffer);
 		break;
@@ -121,8 +124,14 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_PM/*0x1C*/:
 		hon_parse_pm_whisper(gc,buffer,FALSE);
 		break;
+	case HON_SC_PM_FAILED/*0x1D*/:
+		hon_parse_pm_failed(gc,buffer);
+		break;
 	case HON_SC_CHANNEL_LIST/*0x1F*/:
 		hon_parse_channel_list(gc,buffer);
+		break;
+	case HON_SC_MAX_CHANNELS/*0x21*/:
+		hon_parse_max_channels(gc,buffer);
 		break;
 	case HON_SC_USER_INFO_NO_EXIST/*0x2b*/:
 	case HON_SC_USER_INFO_OFFLINE/*0x2c*/:
@@ -144,7 +153,21 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 		break;
 	}
 }
-
+void hon_parse_pm_failed(PurpleConnection *gc,gchar* buffer){
+	hon_account* hon = gc->proto_data;
+	purple_notify_error(NULL,_("Message failed"),_("The user you tried to chat with is not online"),
+		NULL);
+}
+void hon_parse_whisper_failed(PurpleConnection *gc,gchar* buffer){
+	hon_account* hon = gc->proto_data;
+	purple_notify_error(NULL,_("Whisper failed"),_("The user you tried to whisper is not online"),
+		NULL);
+}
+void hon_parse_max_channels(PurpleConnection *gc,gchar* buffer){
+	hon_account* hon = gc->proto_data;
+	purple_notify_error(NULL,_("Channel limit reached"),_("You have reached an open channels limit."),
+		_("To join other channel close some already opened"));
+}
 void hon_parse_global_notification(PurpleConnection *gc,gchar* buffer){
 	hon_account* hon = gc->proto_data;
 	gchar* username = read_string(buffer);
@@ -543,8 +566,8 @@ gboolean hon_send_pm(PurpleConnection* gc,const gchar *username,const gchar* mes
 gboolean hon_send_join_chat(PurpleConnection* gc,const gchar *room){
 	return hon_send_packet(gc,HON_CS_JOIN_CHANNEL/*0x1e*/,"s",room);
 }
-gboolean hon_send_leave_chat(PurpleConnection* gc,guint32 id){
-	return hon_send_packet(gc,HON_CS_LEAVE_CHANNEL/*0x22*/,"i",id);
+gboolean hon_send_leave_chat(PurpleConnection* gc,gchar* name){
+	return hon_send_packet(gc,HON_CS_LEAVE_CHANNEL/*0x22*/,"s",name);
 }
 gboolean hon_send_chat_message(PurpleConnection *gc, guint32 id, const char *message){
 	return hon_send_packet(gc,HON_CS_CHANNEL_MSG/*0x03*/,"is",id,message);

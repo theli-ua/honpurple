@@ -950,7 +950,8 @@ static char *honprpl_get_chat_name(GHashTable *components) {
 }
 
 static void honprpl_chat_leave(PurpleConnection *gc, int id) {
-	hon_send_leave_chat(gc,id);
+	PurpleConversation* conv = purple_find_chat(gc,id);
+	hon_send_leave_chat(gc,conv->name);
 }
 
 

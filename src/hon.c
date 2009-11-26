@@ -129,8 +129,13 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_USER_INFO_ONLINE/*0x2d*/:
 	case HON_SC_USER_INFO_IN_GAME/*0x2e*/:
 		hon_parse_userinfo(gc,buffer,packet_id);
+		break;
 	case HON_SC_UPDATE_TOPIC/*0x30*/:
-		hon_parse_chat_topic(gc,buffer,packet_id);
+		hon_parse_chat_topic(gc,buffer);
+		break;
+	case HON_SC_MESSAGE_ALL/*0x39*/:
+		hon_parse_global_notification(gc,buffer);
+		break;
 	default:
 		hexdump = g_string_new(NULL);
 		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
@@ -139,8 +144,13 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 		break;
 	}
 }
+
+void hon_parse_global_notification(PurpleConnection *gc,gchar* buffer){
+	hon_account* hon = gc->proto_data;
+	gchar* username = read_string(buffer);
+	purple_notify_warning(NULL,username,buffer,NULL);
+}
 void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
-	guint32 status,flags;
 	hon_account* hon = gc->proto_data;
 	guint8 notification_type = *buffer++;
 	gchar* title = NULL;
@@ -450,7 +460,7 @@ void hon_parse_clan_message(PurpleConnection *gc,gchar* buffer){
 	}
 	g_free(message);
 }
-void hon_parse_chat_topic(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
+void hon_parse_chat_topic(PurpleConnection* gc,gchar* buffer){
 	PurpleConversation *convo;
 	hon_account* hon = gc->proto_data;
 	gchar * topic_raw, * topic_html, * msg;

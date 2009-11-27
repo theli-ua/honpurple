@@ -74,6 +74,7 @@ static void honprpl_update_buddies(PurpleConnection* gc){
 				}
 				purple_blist_add_buddy(buddy,NULL,buddies,NULL);
 			}
+			buddy->proto_data = GINT_TO_POINTER(id);
 		}
 		
 						
@@ -130,6 +131,7 @@ static void honprpl_update_clanmates(PurpleConnection* gc){
 				}
 				purple_blist_add_buddy(buddy,NULL,clanmates,NULL);
 			}
+			buddy->proto_data = GINT_TO_POINTER(id);
 		}
 
 
@@ -242,9 +244,9 @@ static void honprpl_tooltip_text(PurpleBuddy *buddy,
 	const gchar* gamename = purple_status_get_attr_string(status, HON_GAME_ATTR);
 	guint32 matchid = purple_status_get_attr_int(status, HON_MATCHID_ATTR);
 	guint32 buddy_id = purple_status_get_attr_int(status, HON_BUDDYID_ATTR);
+	
 	if (gc)
 		hon = gc->proto_data;
-	
 	if (gamename)
 	{
 		purple_notify_user_info_add_pair(info, _("Game"), gamename);
@@ -836,7 +838,7 @@ static void honpurple_info_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer
 	else
 	{
 		gchar* url;
-		info_tmp->account_id = g_strdup(data2->string->str);
+		info_tmp->account_id = data2->string->str;
 		url = g_strdup_printf("%s%s?f=get_all_stats&account_id[0]=%s",
 			purple_account_get_string(gc->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
 			HON_CLIENT_REQUESTER,info_tmp->account_id
@@ -859,7 +861,7 @@ static void honprpl_get_info(PurpleConnection *gc, const char *username) {
 
 	purple_debug_info(HON_DEBUG_PREFIX, "Fetching %s's user info for %s\n", username,
 		gc->account->username);
-	url = g_strdup_printf("%s%s?f=nick2id&nickname[]=%s",
+	url = g_strdup_printf(HON_NICK2ID_REQUEST,
 		purple_account_get_string(gc->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
 		HON_CLIENT_REQUESTER,username
 		);
@@ -869,36 +871,73 @@ static void honprpl_get_info(PurpleConnection *gc, const char *username) {
 
 
 
+static void honpurple_add_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
+	PurpleBuddy *buddy = user_data;
+	PurpleConnection *gc = buddy->account->gc;
+	hon_account* hon = gc->proto_data;
+	deserialized_element* data;
+	deserialized_element* data2;
+
+	if(
+		!url_text
+		|| (data = deserialize_php(&url_text,strlen(url_text)))->type != PHP_ARRAY
+		|| !(data2 = g_hash_table_lookup(data->array,"0"))
+		|| data2->int_val == 0
+		)
+	{
+		purple_notify_error(NULL,_("Add buddy error"),_("Got bad data from masterserver"),NULL);
+	}
+	else
+	{
+		data2 = g_hash_table_lookup(data->array,"notification");
+		hon_send_remove_buddy_notification(gc,GPOINTER_TO_INT(buddy->proto_data),
+			((deserialized_element*)(g_hash_table_lookup(data2->array,"1")))->int_val,
+			((deserialized_element*)(g_hash_table_lookup(data2->array,"2")))->int_val);
+	}
+	if (data)
+		destroy_php_element(data);
+}
+static void honpurple_add_buddy_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
+	PurpleBuddy* buddy = user_data;
+	PurpleConnection *gc = buddy->account->gc;
+	hon_account* hon = gc->proto_data;
+	deserialized_element* data;
+	deserialized_element* data2;
+
+	if(
+		!url_text
+		|| (data = deserialize_php(&url_text,strlen(url_text)))->type != PHP_ARRAY
+		|| ((data2 = g_hash_table_lookup(data->array,buddy->name)) == 0)
+		|| data2->type != PHP_STRING
+		){
+			purple_notify_error(NULL,_("Add buddy error"),_("Couldn't get buddy's account id"),NULL);
+			purple_blist_remove_buddy(buddy);
+	}
+	else
+	{
+		gchar* url;
+		buddy->proto_data = GINT_TO_POINTER(atoi(data2->string->str));
+		url = g_strdup_printf(HON_ADD_BUDDY_REQUEST,purple_account_get_string(gc->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
+			HON_CLIENT_REQUESTER,hon->self.account_id,GPOINTER_TO_INT(buddy->proto_data),hon->cookie);
+		purple_util_fetch_url_request_len_with_account(gc->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_add_buddy_cb,buddy);
+		g_free(url);
+	}
+	if (data)
+		destroy_php_element(data);
+}
 static void honprpl_add_buddy(PurpleConnection *gc, PurpleBuddy *buddy,
 							  PurpleGroup *group)
 {
-	int a = 0;
-#if 0
-	const char *username = gc->account->username;
-	PurpleConnection *buddy_gc = NULL;//get_honprpl_gc(buddy->name);
+	hon_account* hon = gc->proto_data;
+	gchar* url;
+	honprpl_info_tmp* hon_info = g_new0(honprpl_info_tmp,sizeof(honprpl_info_tmp));
 
-	purple_debug_info(HON_DEBUG_PREFIX, "adding %s to %s's buddy list\n", buddy->name,
-		username);
-
-	if (buddy_gc) {
-		PurpleAccount *buddy_acct = buddy_gc->account;
-
-		discover_status(gc, buddy_gc, NULL);
-
-		if (purple_find_buddy(buddy_acct, username)) {
-			purple_debug_info(HON_DEBUG_PREFIX, "%s is already on %s's buddy list\n",
-				username, buddy->name);
-		} else {
-			purple_debug_info(HON_DEBUG_PREFIX, "asking %s if they want to add %s\n",
-				buddy->name, username);
-			purple_account_request_add(buddy_acct,
-				username,
-				NULL,   /* local account id (rarely used) */
-				NULL,   /* alias */
-				NULL);  /* message */
-		}
-	}
-#endif
+	url = g_strdup_printf(HON_NICK2ID_REQUEST,
+		purple_account_get_string(gc->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
+		HON_CLIENT_REQUESTER,buddy->name
+		);
+	purple_util_fetch_url_request_len_with_account(gc->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_add_buddy_nick2id_cb,buddy);
+	g_free(url);
 }
 
 static void honprpl_add_buddies(PurpleConnection *gc, GList *buddies,
@@ -915,12 +954,56 @@ static void honprpl_add_buddies(PurpleConnection *gc, GList *buddies,
 		group = g_list_next(group);
 	}
 }
+static void honpurple_remove_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
+	PurpleBuddy *buddy = user_data;
+	PurpleConnection *gc = buddy->account->gc;
+	hon_account* hon = gc->proto_data;
+	deserialized_element* data;
+	deserialized_element* data2;
 
+	if(
+		!url_text
+		|| (data = deserialize_php(&url_text,strlen(url_text)))->type != PHP_ARRAY
+		|| !(data2 = g_hash_table_lookup(data->array,"0"))
+		|| data2->int_val == 0
+		)
+	{
+		purple_notify_error(NULL,_("Remove buddy error"),_("Got bad data from masterserver"),NULL);
+	}
+	else
+	{
+		data2 = g_hash_table_lookup(data->array,"notification");
+		hon_send_remove_buddy_notification(gc,GPOINTER_TO_INT(buddy->proto_data),
+			((deserialized_element*)(g_hash_table_lookup(data2->array,"1")))->int_val,
+			((deserialized_element*)(g_hash_table_lookup(data2->array,"2")))->int_val);
+	}
+	if (data)
+		destroy_php_element(data);
+	purple_buddy_destroy(buddy);
+
+}
 static void honprpl_remove_buddy(PurpleConnection *gc, PurpleBuddy *buddy,
 								 PurpleGroup *group)
 {
+	guint32 buddy_id;
+	PurpleBuddy *tmpbuddy;
+	hon_account* hon = gc->proto_data;
+	gchar* url;
 	purple_debug_info(HON_DEBUG_PREFIX, "removing %s from %s's buddy list\n",
 		buddy->name, gc->account->username);
+	buddy_id = GPOINTER_TO_INT(buddy->proto_data);
+	if (buddy_id == 0)
+	{
+		/*purple_blist_remove_buddy(buddy);*/
+		return;
+	}
+	
+	tmpbuddy = purple_buddy_new(gc->account,buddy->name,NULL);
+	tmpbuddy->proto_data = GINT_TO_POINTER(buddy_id);
+	url = g_strdup_printf(HON_REMOVE_BUDDY_REQUEST,purple_account_get_string(gc->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
+		HON_CLIENT_REQUESTER,hon->self.account_id,buddy_id,hon->cookie);
+	purple_util_fetch_url_request_len_with_account(gc->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_remove_buddy_cb,tmpbuddy);
+	g_free(url);
 }
 
 static void honprpl_remove_buddies(PurpleConnection *gc, GList *buddies,

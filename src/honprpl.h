@@ -30,6 +30,10 @@
 #define HON_CLIENT_REQUESTER "client_requester.php"
 #define HON_DEFAULT_MASTER_SERVER "http://masterserver.hon.s2games.com/"
 
+#define HON_REMOVE_BUDDY_REQUEST "%s/%s?f=remove_buddy&account_id=%d&buddy_id=%d&cookie=%s"
+#define HON_ADD_BUDDY_REQUEST "%s/%s?f=new_buddy&account_id=%d&buddy_id=%d&cookie=%s"
+#define HON_NICK2ID_REQUEST "%s%s?f=nick2id&nickname[]=%s"
+
 #define IS_MD5_OPTION "pass_is_md5"
 
 #define HON_CHAT_PORT 11031

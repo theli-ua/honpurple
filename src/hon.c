@@ -182,8 +182,14 @@ void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
 	case HON_NOTIFICATION_ADDED_AS_BUDDY:
 		title = g_strdup(_("User added you as buddy"));
 		break;
+	case HON_NOTIFICATION_BUDDY_ADDED:
+		title = g_strdup(_("Buddy added"));
+		break;
 	case HON_NOTIFICATION_REMOVED_AS_BUDDY:
 		title = g_strdup(_("User removed you as buddy"));
+		break;
+	case HON_NOTIFICATION_BUDDY_REMOVED:
+		title = g_strdup(_("Buddy removed"));
 		break;
 	default :
 		title = g_strdup_printf(_("Unknown notification type (%d)"),notification_type);
@@ -591,4 +597,11 @@ gboolean hon_send_clan_message(PurpleConnection* gc,const gchar *message){
 }
 gboolean hon_send_whois(PurpleConnection* gc,const gchar *username){
 	return hon_send_packet(gc,HON_CS_USER_INFO/*0x2a*/,"s",username);
+}
+
+gboolean hon_send_remove_buddy_notification(PurpleConnection* gc,guint32 buddyid, guint32 code1, guint32 code2){
+	return hon_send_packet(gc,HON_CS_BUDDY_REMOVE_NOTIFY/*0x0e*/,"iii",buddyid,code1,code2);
+}
+gboolean hon_send_add_buddy_notification(PurpleConnection* gc,guint32 buddyid, guint32 code1, guint32 code2){
+	return hon_send_packet(gc,HON_CS_BUDDY_ADD_NOTIFY/*0x0d*/,"iii",buddyid,code1,code2);
 }

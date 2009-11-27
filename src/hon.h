@@ -43,6 +43,7 @@ void hon_parse_global_notification(PurpleConnection *gc,gchar* buffer);
 void hon_parse_max_channels(PurpleConnection *gc,gchar* buffer);
 void hon_parse_whisper_failed(PurpleConnection *gc,gchar* buffer);
 void hon_parse_pm_failed(PurpleConnection *gc,gchar* buffer);
+void hon_parse_channel_kick(PurpleConnection *gc,gchar* buffer);
 
 gboolean hon_send_pong(PurpleConnection *gc);
 gboolean hon_send_login(PurpleConnection *gc,const gchar* cookie);
@@ -58,4 +59,6 @@ gboolean hon_send_clan_message(PurpleConnection* gc,const gchar *message);
 gboolean hon_send_whois(PurpleConnection* gc,const gchar *username);
 gboolean hon_send_remove_buddy_notification(PurpleConnection* gc,guint32 buddyid, guint32 code1, guint32 code2);
 gboolean hon_send_add_buddy_notification(PurpleConnection* gc,guint32 buddyid, guint32 code1, guint32 code2);
+gboolean hon_send_channel_kick(PurpleConnection* gc,guint32 chatid, guint32 kickedid);
+
 #endif

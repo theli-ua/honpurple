@@ -33,6 +33,7 @@
 #define HON_REMOVE_BUDDY_REQUEST "%s/%s?f=remove_buddy&account_id=%d&buddy_id=%d&cookie=%s"
 #define HON_ADD_BUDDY_REQUEST "%s/%s?f=new_buddy&account_id=%d&buddy_id=%d&cookie=%s"
 #define HON_NICK2ID_REQUEST "%s%s?f=nick2id&nickname[]=%s"
+#define HON_STATS_REQUEST "%s%s?f=get_all_stats&account_id[0]=%d"
 
 #define IS_MD5_OPTION "pass_is_md5"
 
@@ -70,10 +71,11 @@ typedef struct {
 	GByteArray* databuff;
 } hon_account;
 
+typedef void (*nick2idCallback)(PurpleBuddy* buddy);
 typedef struct {
-	PurpleConnection* gc;
-	gchar* username;
-	PurpleNotifyUserInfo* info;
-	gchar* account_id;
-} honprpl_info_tmp;
+	nick2idCallback cb;
+	nick2idCallback error_cb;
+	PurpleBuddy* buddy;
+}nick2id_cb_data;
+
 #endif

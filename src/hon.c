@@ -142,6 +142,9 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_UPDATE_TOPIC/*0x30*/:
 		hon_parse_chat_topic(gc,buffer);
 		break;
+	case HON_SC_CHANNEL_KICK/*0x31*/:
+		hon_parse_channel_kick(gc,buffer);
+		break;
 	case HON_SC_MESSAGE_ALL/*0x39*/:
 		hon_parse_global_notification(gc,buffer);
 		break;
@@ -152,6 +155,40 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 		g_string_free(hexdump,TRUE);
 		break;
 	}
+}
+void hon_parse_channel_kick(PurpleConnection *gc,gchar* buffer){
+	hon_account* hon = gc->proto_data;
+	guint32 chatid,kickerid,kickedid;
+	gchar* kicked,*kicker,*msg;
+	PurpleConversation* chat;
+	chatid = read_guint32(buffer);
+	kickerid = read_guint32(buffer);
+	kickedid = read_guint32(buffer);
+	chat = purple_find_chat(gc,chatid);
+	if (!chat)
+		return;
+
+	if (kickerid == hon->self.account_id)
+		kicker = hon->self.nickname;
+	else if((kicker = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickerid))))
+	{}
+	else
+		kicker = _("Someone");
+
+	if (kickedid == hon->self.account_id)
+		kicked = hon->self.nickname;
+	else if((kicked = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickedid))))
+	{}
+	else
+		kicked = _("Someone");
+
+	msg = g_strdup_printf(_("%s was kicked from the channel by %s"),kicked,kicker);
+	purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+
+	if (kickedid == hon->self.account_id)
+		serv_got_chat_left(gc, chatid);
+
+	g_free(msg);
 }
 void hon_parse_pm_failed(PurpleConnection *gc,gchar* buffer){
 	hon_account* hon = gc->proto_data;
@@ -447,7 +484,6 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 	else if (flags & HON_FLAGS_CHAT_MOD)
 		purple_flags |= PURPLE_CBFLAGS_OP;
 
-
 	if (conv)
 	{
 		purple_conv_chat_add_user(PURPLE_CONV_CHAT(conv),nick,extra,purple_flags,TRUE);
@@ -604,4 +640,7 @@ gboolean hon_send_remove_buddy_notification(PurpleConnection* gc,guint32 buddyid
 }
 gboolean hon_send_add_buddy_notification(PurpleConnection* gc,guint32 buddyid, guint32 code1, guint32 code2){
 	return hon_send_packet(gc,HON_CS_BUDDY_ADD_NOTIFY/*0x0d*/,"iii",buddyid,code1,code2);
+}
+gboolean hon_send_channel_kick(PurpleConnection* gc,guint32 chatid, guint32 kickedid){
+	return hon_send_packet(gc,HON_CS_CHANNEL_KICK/*0x31*/,"ii",chatid,kickedid);
 }

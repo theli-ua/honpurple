@@ -20,6 +20,7 @@
 #include "status.h"
 #include "util.h"
 #include "version.h"
+#include "packet_id.h"
 
 #ifndef _WIN32
 #include <sys/types.h>
@@ -1221,19 +1222,20 @@ static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 	const char* user = args[0];
 	hon_account* hon = conv->account->gc->proto_data;
 	guint32 kicked_id = 0,id = 0;
+	guint32 packetId = GPOINTER_TO_INT(userdata);
 	gchar* name;
 	GHashTableIter iter;
 	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
 	if (!user || strlen(user) == 0) {
-		*error = g_strdup(_("Kick is missing nickname."));
+		*error = g_strdup(_("Command is missing nickname."));
 		return PURPLE_CMD_RET_FAILED;
 	} 
 	if (!purple_conv_chat_cb_find(chat,user)) {
 		*error = g_strdup(_("There is no such user in a channel"));
 		return PURPLE_CMD_RET_FAILED;
 	}
-	if (!purple_conv_chat_cb_find(chat,hon->self.nickname) || !(purple_conv_chat_cb_find(chat,hon->self.nickname)->flags & (PURPLE_CBFLAGS_FOUNDER | PURPLE_CBFLAGS_OP ))) {
-		*error = g_strdup(_("You need to be OP or Founder to kick"));
+	if (!purple_conv_chat_cb_find(chat,hon->self.nickname) || !(purple_conv_chat_cb_find(chat,hon->self.nickname)->flags & (PURPLE_CBFLAGS_FOUNDER | PURPLE_CBFLAGS_OP | PURPLE_CBFLAGS_HALFOP))) {
+		*error = g_strdup(_("You need to be OP or Founder for this command"));
 		return PURPLE_CMD_RET_FAILED;
 	}
 	g_hash_table_iter_init(&iter,hon->id2nick);
@@ -1245,7 +1247,21 @@ static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 		}
 	}
 	if (kicked_id != 0)
-		hon_send_channel_kick(conv->account->gc,chat->id,kicked_id);	
+		switch (packetId){
+			case HON_CS_CHANNEL_KICK:
+				hon_send_channel_kick(conv->account->gc,chat->id,kicked_id);
+				break;
+			case HON_CS_CHANNEL_PROMOTE:
+				hon_send_channel_promote(conv->account->gc,chat->id,kicked_id);
+				break;
+			case HON_CS_CHANNEL_DEMOTE:
+				hon_send_channel_demote(conv->account->gc,chat->id,kicked_id);
+				break;
+			default:
+				//*error = g_strdup(_("Was unable to find users account id"));
+				return PURPLE_CMD_RET_FAILED;
+
+		}
 	else{
 		*error = g_strdup(_("Was unable to find users account id"));
 		return PURPLE_CMD_RET_FAILED;
@@ -1447,7 +1463,26 @@ static void honprpl_init(PurplePlugin *plugin)
 		"prpl-hon",
 		honprpl_kick,
 		_("Kick user"),
-		NULL); 
+		GINT_TO_POINTER(HON_CS_CHANNEL_KICK)); 
+
+	/* promote */
+	purple_cmd_register("promote",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_kick,
+		_("Promote user"),
+		GINT_TO_POINTER(HON_CS_CHANNEL_PROMOTE)); 
+	/* demote */
+	purple_cmd_register("demote",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_kick,
+		_("Promote user"),
+		GINT_TO_POINTER(HON_CS_CHANNEL_DEMOTE)); 
 
 
 	_HON_protocol = plugin;

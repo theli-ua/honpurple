@@ -145,6 +145,10 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_CHANNEL_KICK/*0x31*/:
 		hon_parse_channel_kick(gc,buffer);
 		break;
+	case HON_SC_CHANNEL_PROMOTE/*0x3A*/:
+	case HON_SC_CHANNEL_DEMOTE/*0x3A*/:
+		hon_parse_channel_promote_demote(gc,buffer,packet_id);
+		break;
 	case HON_SC_MESSAGE_ALL/*0x39*/:
 		hon_parse_global_notification(gc,buffer);
 		break;
@@ -190,6 +194,94 @@ void hon_parse_channel_kick(PurpleConnection *gc,gchar* buffer){
 
 	g_free(msg);
 }
+void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint8 packet_id){
+	hon_account* hon = gc->proto_data;
+	guint32 chatid,kickerid,kickedid;
+	gchar* kicked,*kicker,*msg;
+	PurpleConversation* chat;
+	const char* action,*rank;
+	PurpleConvChatBuddyFlags chatbuddy_flags;
+
+	chatid = read_guint32(buffer);
+	kickedid = read_guint32(buffer);
+	kickerid = read_guint32(buffer);
+	chat = purple_find_chat(gc,chatid);
+	if (!chat)
+		return;
+
+	if (kickerid == hon->self.account_id)
+		kicker = hon->self.nickname;
+	else if((kicker = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickerid))))
+	{}
+	else
+		kicker = _("Someone");
+
+	if (kickedid == hon->self.account_id)
+		kicked = hon->self.nickname;
+	else if((kicked = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickedid))))
+	{}
+	else
+		return;
+
+	
+	chatbuddy_flags = purple_conv_chat_user_get_flags(PURPLE_CONV_CHAT(chat),kicked);
+	if (packet_id == HON_SC_CHANNEL_PROMOTE)
+	{
+		action = _("promoted");
+		if(chatbuddy_flags == PURPLE_CBFLAGS_NONE)
+		{
+			rank = _("Channel Officer");
+			chatbuddy_flags = PURPLE_CBFLAGS_HALFOP;
+		}
+		else if (chatbuddy_flags == PURPLE_CBFLAGS_FOUNDER)
+		{
+			//nowhere to update .. "Stuff" maybe? o_O
+			rank = _("Stuff");
+		}
+		else if (chatbuddy_flags == PURPLE_CBFLAGS_OP)
+		{
+			rank = _("Channel Administrator");
+			chatbuddy_flags = PURPLE_CBFLAGS_FOUNDER;
+		}
+		else if (chatbuddy_flags == PURPLE_CBFLAGS_HALFOP)
+		{
+			rank = _("Channel Leader");
+			chatbuddy_flags = PURPLE_CBFLAGS_OP;
+		}
+		else
+			rank = _("huh?");
+	}
+	else
+	{
+		rank = _("huh?");
+		action = _("demoted");
+
+		if (chatbuddy_flags == PURPLE_CBFLAGS_FOUNDER)
+		{
+			rank = _("Channel Leader");
+			chatbuddy_flags = PURPLE_CBFLAGS_OP;
+		}
+		else if (chatbuddy_flags == PURPLE_CBFLAGS_OP)
+		{
+			rank = _("Channel Officer");
+			chatbuddy_flags = PURPLE_CBFLAGS_HALFOP;
+		}
+		else if (chatbuddy_flags == PURPLE_CBFLAGS_HALFOP)
+		{
+			rank = _("Non admin status");
+			chatbuddy_flags = PURPLE_CBFLAGS_NONE;
+		}
+
+
+	}
+
+	purple_conv_chat_user_set_flags(PURPLE_CONV_CHAT(chat),kicked,chatbuddy_flags);
+	msg = g_strdup_printf(_("%s has been %s to %s by %s"),kicked,action,rank,kicker);
+	purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+
+	g_free(msg);
+}
+
 void hon_parse_pm_failed(PurpleConnection *gc,gchar* buffer){
 	hon_account* hon = gc->proto_data;
 	purple_notify_error(NULL,_("Message failed"),_("The user you tried to chat with is not online"),
@@ -408,12 +500,12 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 
 		purple_flags = PURPLE_CBFLAGS_NONE;
 
-		if (flags & HON_FLAGS_CHAT_FOUNDER)
-		{
-			purple_flags |= PURPLE_CBFLAGS_FOUNDER;
-		}
-		else if (flags & HON_FLAGS_CHAT_MOD)
-			purple_flags |= PURPLE_CBFLAGS_OP;
+		if (flags == HON_FLAGS_CHAT_ADMINISTRATOR)
+			purple_flags = PURPLE_CBFLAGS_FOUNDER;
+		else if (flags == HON_FLAGS_CHAT_LEADER)
+			purple_flags = PURPLE_CBFLAGS_OP;
+		else if (flags == HON_FLAGS_CHAT_OFFICER)
+			purple_flags = PURPLE_CBFLAGS_HALFOP;
 
 
 		extra = nickname;
@@ -433,12 +525,13 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 		flags = GPOINTER_TO_INT(g_hash_table_lookup(ops,GINT_TO_POINTER(hon->self.account_id)));
 		g_hash_table_destroy(ops);
 	}
-	if (flags & HON_FLAGS_CHAT_FOUNDER)
-	{
-		purple_flags |= PURPLE_CBFLAGS_FOUNDER;
-	}
-	else if (flags & HON_FLAGS_CHAT_MOD)
-		purple_flags |= PURPLE_CBFLAGS_OP;
+	if (flags == HON_FLAGS_CHAT_ADMINISTRATOR)
+		purple_flags = PURPLE_CBFLAGS_FOUNDER;
+	else if (flags == HON_FLAGS_CHAT_LEADER)
+		purple_flags = PURPLE_CBFLAGS_OP;
+	else if (flags == HON_FLAGS_CHAT_OFFICER)
+		purple_flags = PURPLE_CBFLAGS_HALFOP;
+
 
 	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", topic, PURPLE_MESSAGE_SYSTEM|PURPLE_MESSAGE_NO_LOG, time(NULL));
 	g_free(topic);
@@ -477,12 +570,13 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 	status = *buffer++;
 	flags = *buffer++;
 
-	if (flags & HON_FLAGS_CHAT_FOUNDER)
-	{
-		purple_flags |= PURPLE_CBFLAGS_FOUNDER;
-	}
-	else if (flags & HON_FLAGS_CHAT_MOD)
-		purple_flags |= PURPLE_CBFLAGS_OP;
+	if (flags == HON_FLAGS_CHAT_ADMINISTRATOR)
+		purple_flags = PURPLE_CBFLAGS_FOUNDER;
+	else if (flags == HON_FLAGS_CHAT_LEADER)
+		purple_flags = PURPLE_CBFLAGS_OP;
+	else if (flags == HON_FLAGS_CHAT_OFFICER)
+		purple_flags = PURPLE_CBFLAGS_HALFOP;
+
 
 	if (conv)
 	{
@@ -644,3 +738,11 @@ gboolean hon_send_add_buddy_notification(PurpleConnection* gc,guint32 buddyid, g
 gboolean hon_send_channel_kick(PurpleConnection* gc,guint32 chatid, guint32 kickedid){
 	return hon_send_packet(gc,HON_CS_CHANNEL_KICK/*0x31*/,"ii",chatid,kickedid);
 }
+gboolean hon_send_channel_promote(PurpleConnection* gc,guint32 chatid, guint32 promotedid){
+	return hon_send_packet(gc,HON_CS_CHANNEL_PROMOTE/*0x3A*/,"ii",chatid,promotedid);
+}
+gboolean hon_send_channel_demote(PurpleConnection* gc,guint32 chatid, guint32 demotedid){
+	return hon_send_packet(gc,HON_CS_CHANNEL_DEMOTE/*0x3B*/,"ii",chatid,demotedid);
+}
+
+

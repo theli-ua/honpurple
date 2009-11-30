@@ -1,3 +1,12 @@
+0.3
+	promoting/demoting
+	kickin
+	setting/updating topic
+	parsing server notifications
+	parsing stuff notifications
+	do not reconnect when hon's server closed connection (fix interfering with hon client)
+	add/remove buddy
+	bugs fixed/introduced
 0.2
 	proxy support
 	fix for long server packets (fixes room list retreiving)

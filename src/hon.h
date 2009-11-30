@@ -16,8 +16,11 @@
 #define HON_STATUS_INGAME	5
 
 #define HON_FLAGS_PREPURCHASED 0x40
-#define HON_FLAGS_CHAT_MOD 0x01
-#define HON_FLAGS_CHAT_FOUNDER 0x02
+#define HON_FLAGS_CHAT_NONE 0x00
+#define HON_FLAGS_CHAT_OFFICER 0x01
+#define HON_FLAGS_CHAT_LEADER 0x02
+#define HON_FLAGS_CHAT_ADMINISTRATOR 0x03
+#define HON_FLAGS_CHAT_STUFF 0x04
 
 #define HON_NOTIFICATION_ADDED_AS_BUDDY 0x01
 #define HON_NOTIFICATION_BUDDY_ADDED 0x02
@@ -44,6 +47,7 @@ void hon_parse_max_channels(PurpleConnection *gc,gchar* buffer);
 void hon_parse_whisper_failed(PurpleConnection *gc,gchar* buffer);
 void hon_parse_pm_failed(PurpleConnection *gc,gchar* buffer);
 void hon_parse_channel_kick(PurpleConnection *gc,gchar* buffer);
+void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint8 packet_id);
 
 gboolean hon_send_pong(PurpleConnection *gc);
 gboolean hon_send_login(PurpleConnection *gc,const gchar* cookie);
@@ -60,5 +64,7 @@ gboolean hon_send_whois(PurpleConnection* gc,const gchar *username);
 gboolean hon_send_remove_buddy_notification(PurpleConnection* gc,guint32 buddyid, guint32 code1, guint32 code2);
 gboolean hon_send_add_buddy_notification(PurpleConnection* gc,guint32 buddyid, guint32 code1, guint32 code2);
 gboolean hon_send_channel_kick(PurpleConnection* gc,guint32 chatid, guint32 kickedid);
+gboolean hon_send_channel_promote(PurpleConnection* gc,guint32 chatid, guint32 promotedid);
+gboolean hon_send_channel_demote(PurpleConnection* gc,guint32 chatid, guint32 demotedid);
 
 #endif

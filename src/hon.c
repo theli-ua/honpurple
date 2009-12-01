@@ -159,6 +159,12 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_MESSAGE_ALL/*0x39*/:
 		hon_parse_global_notification(gc,buffer);
 		break;
+	case HON_SC_CHANNEL_PASSWORD_CHANGED/*0x43*/:
+		hon_parse_channel_password_changed(gc,buffer);
+		break;
+	case HON_SC_JOIN_CHANNEL_PASSWORD/*0x46*/:
+		hon_parse_join_channel_password(gc,buffer);
+		break;
 	default:
 		hexdump = g_string_new(NULL);
 		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
@@ -166,6 +172,20 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 		g_string_free(hexdump,TRUE);
 		break;
 	}
+}
+void hon_parse_channel_password_changed(PurpleConnection* gc,gchar* buffer){
+	PurpleConversation *convo;
+	hon_account* hon = gc->proto_data;
+	gchar * msg;
+	guint32 chan_id = read_guint32(buffer);
+	convo = purple_find_chat(gc,chan_id);
+	if (!convo) {
+		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got a message for %d, which doesn't exist\n", chan_id);
+		return;
+	}
+	msg = g_strdup_printf(_("The password for this channel has been changed by %s."),buffer);
+	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+	g_free(msg);
 }
 void hon_parse_channel_ban_unban(PurpleConnection *gc,gchar* buffer,guint8 packet_id)
 {
@@ -195,6 +215,11 @@ void hon_parse_channel_ban_unban(PurpleConnection *gc,gchar* buffer,guint8 packe
 
 	msg = g_strdup_printf(_("%s was %s from the channel by %s."),kicked,action,kicker);
 	purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+	g_free(msg);
+}
+void hon_parse_join_channel_password(PurpleConnection *gc,gchar* buffer){
+	gchar* msg = g_strdup_printf(_("The channel '%s' requires a password."),buffer);
+	purple_notify_error(NULL,_("Banned"),msg,NULL);
 	g_free(msg);
 }
 void hon_parse_channel_banned(PurpleConnection *gc,gchar* buffer){
@@ -536,7 +561,8 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 			nickname,account_id,status,flags);
 
 		flags |= GPOINTER_TO_INT(g_hash_table_lookup(ops,GINT_TO_POINTER(account_id)));
-
+		
+		flags &= 0xF;
 		purple_flags = PURPLE_CBFLAGS_NONE;
 
 		if (flags == HON_FLAGS_CHAT_ADMINISTRATOR)
@@ -745,6 +771,9 @@ gboolean hon_send_pm(PurpleConnection* gc,const gchar *username,const gchar* mes
 gboolean hon_send_join_chat(PurpleConnection* gc,const gchar *room){
 	return hon_send_packet(gc,HON_CS_JOIN_CHANNEL/*0x1e*/,"s",room);
 }
+gboolean hon_send_join_chat_password(PurpleConnection* gc,const gchar *room,const gchar* password){
+	return hon_send_packet(gc,HON_CS_JOIN_CHANNEL_PASSWORD/*0x46*/,"ss",room,password);
+}
 gboolean hon_send_leave_chat(PurpleConnection* gc,gchar* name){
 	return hon_send_packet(gc,HON_CS_LEAVE_CHANNEL/*0x22*/,"s",name);
 }
@@ -790,5 +819,8 @@ gboolean hon_send_channel_ban(PurpleConnection* gc,guint32 chatid, const gchar* 
 }
 gboolean hon_send_channel_unban(PurpleConnection* gc,guint32 chatid, const gchar* banned){
 	return hon_send_packet(gc,HON_CS_CHANNEL_UNBAN/*0x33*/,"is",chatid,banned);
+}
+gboolean hon_send_channel_password(PurpleConnection* gc,guint32 chatid, const gchar* password){
+	return hon_send_packet(gc,HON_CS_CHANNEL_SET_PASSWORD/*0x33*/,"is",chatid,password);
 }
 

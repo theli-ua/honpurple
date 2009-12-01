@@ -402,6 +402,7 @@ static GList *honprpl_blist_node_menu(PurpleBlistNode *node) {
 
 static GList *honprpl_chat_info(PurpleConnection *gc) {
 	struct proto_chat_entry *pce; /* defined in prpl.h */
+	GList* m;
 
 	purple_debug_info(HON_DEBUG_PREFIX, "returning chat setting 'room'\n");
 
@@ -409,8 +410,14 @@ static GList *honprpl_chat_info(PurpleConnection *gc) {
 	pce->label = _("Chat _room");
 	pce->identifier = "room";
 	pce->required = TRUE;
+	m = g_list_append(NULL, pce);
 
-	return g_list_append(NULL, pce);
+	pce = g_new0(struct proto_chat_entry, 1);
+	pce->label = _("Password");
+	pce->identifier = "password";
+	pce->required = FALSE;
+
+	return g_list_append(m, pce);
 }
 
 static GHashTable *honprpl_chat_info_defaults(PurpleConnection *gc,
@@ -1019,7 +1026,11 @@ static void honprpl_remove_buddies(PurpleConnection *gc, GList *buddies,
 }
 
 static void honprpl_join_chat(PurpleConnection *gc, GHashTable *components) {
-	hon_send_join_chat(gc,g_hash_table_lookup(components, "room"));
+	gchar* password = g_hash_table_lookup(components, "password");
+	if (strlen(password) > 0)
+		hon_send_join_chat_password(gc,g_hash_table_lookup(components, "room"),password);
+	else
+		hon_send_join_chat(gc,g_hash_table_lookup(components, "room"));
 }
 
 static char *honprpl_get_chat_name(GHashTable *components) {
@@ -1214,7 +1225,16 @@ static PurpleCmdRet honprpl_topic(PurpleConversation *conv, const gchar *cmd,
 	honprpl_set_chat_topic(conv->account->gc,chat->id,args[0]);
 	return PURPLE_CMD_RET_OK;
 }
-
+static PurpleCmdRet honprpl_password(PurpleConversation *conv, const gchar *cmd,
+								  gchar **args, gchar **error, void *userdata) 
+{
+	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+	gchar* password = "";
+	if (args[0])
+		password = args[0];
+	hon_send_channel_password(conv->account->gc,chat->id,password);
+	return PURPLE_CMD_RET_OK;
+}
 
 static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 								  gchar **args, gchar **error, void *userdata) 
@@ -1461,6 +1481,16 @@ static void honprpl_init(PurplePlugin *plugin)
 		"prpl-hon",
 		honprpl_topic,
 		_("Set channel topic"),
+		NULL); 
+
+	/* password */
+	purple_cmd_register("password",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS,
+		"prpl-hon",
+		honprpl_password,
+		_("Set channel password"),
 		NULL); 
 
 	/* topic */

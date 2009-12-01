@@ -145,6 +145,13 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_CHANNEL_KICK/*0x31*/:
 		hon_parse_channel_kick(gc,buffer);
 		break;
+	case HON_SC_CHANNEL_BAN/*0x32*/:
+	case HON_SC_CHANNEL_UNBAN/*0x33*/:
+		hon_parse_channel_ban_unban(gc,buffer,packet_id);
+		break;
+	case HON_SC_CHANNEL_BANNED/*0x34*/:
+		hon_parse_channel_banned(gc,buffer);
+		break;
 	case HON_SC_CHANNEL_PROMOTE/*0x3A*/:
 	case HON_SC_CHANNEL_DEMOTE/*0x3A*/:
 		hon_parse_channel_promote_demote(gc,buffer,packet_id);
@@ -159,6 +166,41 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 		g_string_free(hexdump,TRUE);
 		break;
 	}
+}
+void hon_parse_channel_ban_unban(PurpleConnection *gc,gchar* buffer,guint8 packet_id)
+{
+	hon_account* hon = gc->proto_data;
+	guint32 chatid,kickerid;
+	gchar* kicked,*kicker,*msg,*action;
+	PurpleConversation* chat;
+	chatid = read_guint32(buffer);
+	kickerid = read_guint32(buffer);
+	kicked = buffer;
+	chat = purple_find_chat(gc,chatid);
+	if (!chat)
+		return;
+
+	if (kickerid == hon->self.account_id)
+		kicker = hon->self.nickname;
+	else if((kicker = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickerid))))
+	{}
+	else
+		kicker = _("Someone");
+
+	if (packet_id == HON_SC_CHANNEL_BAN)
+		action = _("banned");
+	else
+		action = _("unbanned");
+	
+
+	msg = g_strdup_printf(_("%s was %s from the channel by %s."),kicked,action,kicker);
+	purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+	g_free(msg);
+}
+void hon_parse_channel_banned(PurpleConnection *gc,gchar* buffer){
+	gchar* msg = g_strdup_printf(_("You are banned from the channel '%s'"),buffer);
+	purple_notify_error(NULL,_("Banned"),msg,NULL);
+	g_free(msg);
 }
 void hon_parse_channel_kick(PurpleConnection *gc,gchar* buffer){
 	hon_account* hon = gc->proto_data;
@@ -283,17 +325,14 @@ void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint8 
 }
 
 void hon_parse_pm_failed(PurpleConnection *gc,gchar* buffer){
-	hon_account* hon = gc->proto_data;
 	purple_notify_error(NULL,_("Message failed"),_("The user you tried to chat with is not online"),
 		NULL);
 }
 void hon_parse_whisper_failed(PurpleConnection *gc,gchar* buffer){
-	hon_account* hon = gc->proto_data;
 	purple_notify_error(NULL,_("Whisper failed"),_("The user you tried to whisper is not online"),
 		NULL);
 }
 void hon_parse_max_channels(PurpleConnection *gc,gchar* buffer){
-	hon_account* hon = gc->proto_data;
 	purple_notify_error(NULL,_("Channel limit reached"),_("You have reached an open channels limit."),
 		_("To join other channel close some already opened"));
 }
@@ -601,6 +640,8 @@ void hon_parse_chat_leave(PurpleConnection *gc,gchar* buffer){
 	{
 		purple_conv_chat_remove_user(PURPLE_CONV_CHAT(conv),nick,"");
 	}
+	if (account_id == hon->self.account_id)
+		serv_got_chat_left(gc, chan_id);
 }
 void hon_parse_clan_message(PurpleConnection *gc,gchar* buffer){
 	hon_account* hon = gc->proto_data;
@@ -708,7 +749,7 @@ gboolean hon_send_leave_chat(PurpleConnection* gc,gchar* name){
 	return hon_send_packet(gc,HON_CS_LEAVE_CHANNEL/*0x22*/,"s",name);
 }
 gboolean hon_send_chat_message(PurpleConnection *gc, guint32 id, const char *message){
-	return hon_send_packet(gc,HON_CS_CHANNEL_MSG/*0x03*/,"is",id,message);
+	return hon_send_packet(gc,HON_CS_CHANNEL_MSG/*0x03*/,"si",message,id);
 }
 gboolean hon_send_chat_topic(PurpleConnection *gc, guint32 id, const char *topic){
 	return hon_send_packet(gc,HON_CS_UPDATE_TOPIC/*0x30*/,"is",id,topic);
@@ -744,5 +785,10 @@ gboolean hon_send_channel_promote(PurpleConnection* gc,guint32 chatid, guint32 p
 gboolean hon_send_channel_demote(PurpleConnection* gc,guint32 chatid, guint32 demotedid){
 	return hon_send_packet(gc,HON_CS_CHANNEL_DEMOTE/*0x3B*/,"ii",chatid,demotedid);
 }
-
+gboolean hon_send_channel_ban(PurpleConnection* gc,guint32 chatid, const gchar* banned){
+	return hon_send_packet(gc,HON_CS_CHANNEL_BAN/*0x32*/,"is",chatid,banned);
+}
+gboolean hon_send_channel_unban(PurpleConnection* gc,guint32 chatid, const gchar* banned){
+	return hon_send_packet(gc,HON_CS_CHANNEL_UNBAN/*0x33*/,"is",chatid,banned);
+}
 

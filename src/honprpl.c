@@ -1230,7 +1230,9 @@ static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 		*error = g_strdup(_("Command is missing nickname."));
 		return PURPLE_CMD_RET_FAILED;
 	} 
-	if (!purple_conv_chat_cb_find(chat,user)) {
+	if (!purple_conv_chat_cb_find(chat,user)
+		&& packetId != HON_CS_CHANNEL_BAN && packetId != HON_CS_CHANNEL_UNBAN
+		) {
 		*error = g_strdup(_("There is no such user in a channel"));
 		return PURPLE_CMD_RET_FAILED;
 	}
@@ -1246,7 +1248,7 @@ static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 			kicked_id = id;
 		}
 	}
-	if (kicked_id != 0)
+	if (kicked_id != 0 || packetId == HON_CS_CHANNEL_BAN || packetId == HON_CS_CHANNEL_UNBAN)
 		switch (packetId){
 			case HON_CS_CHANNEL_KICK:
 				hon_send_channel_kick(conv->account->gc,chat->id,kicked_id);
@@ -1256,6 +1258,12 @@ static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 				break;
 			case HON_CS_CHANNEL_DEMOTE:
 				hon_send_channel_demote(conv->account->gc,chat->id,kicked_id);
+				break;
+			case HON_CS_CHANNEL_BAN:
+				hon_send_channel_ban(conv->account->gc,chat->id,user);
+				break;
+			case HON_CS_CHANNEL_UNBAN:
+				hon_send_channel_unban(conv->account->gc,chat->id,user);
 				break;
 			default:
 				//*error = g_strdup(_("Was unable to find users account id"));
@@ -1484,6 +1492,24 @@ static void honprpl_init(PurplePlugin *plugin)
 		_("Promote user"),
 		GINT_TO_POINTER(HON_CS_CHANNEL_DEMOTE)); 
 
+	/* ban */
+	purple_cmd_register("ban",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_kick,
+		_("Ban user"),
+		GINT_TO_POINTER(HON_CS_CHANNEL_BAN)); 
+	/* unban */
+	purple_cmd_register("unban",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_kick,
+		_("Unban user"),
+		GINT_TO_POINTER(HON_CS_CHANNEL_UNBAN)); 
 
 	_HON_protocol = plugin;
 }

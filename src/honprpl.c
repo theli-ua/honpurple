@@ -1549,7 +1549,7 @@ static void honprpl_init(PurplePlugin *plugin)
 		_("Unban user"),
 		GINT_TO_POINTER(HON_CS_CHANNEL_UNBAN)); 
 
-	/* unban */
+	/* silence */
 	purple_cmd_register("silence",
 		"ww",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */

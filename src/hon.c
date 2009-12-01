@@ -152,6 +152,15 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_CHANNEL_BANNED/*0x34*/:
 		hon_parse_channel_banned(gc,buffer);
 		break;
+	case HON_SC_CHANNEL_SILENCED/*0x35*/:
+		hon_parse_channel_silenced(gc,buffer);
+		break;
+	case HON_SC_CHANNEL_SILENCE_LIFTED/*0x36*/:
+		hon_parse_channel_silence_lifted(gc,buffer);
+		break;
+	case HON_SC_CHANNEL_SILENCE_PLACED/*0x37*/:
+		hon_parse_channel_silence_placed(gc,buffer);
+		break;
 	case HON_SC_CHANNEL_PROMOTE/*0x3A*/:
 	case HON_SC_CHANNEL_DEMOTE/*0x3A*/:
 		hon_parse_channel_promote_demote(gc,buffer,packet_id);
@@ -172,6 +181,48 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 		g_string_free(hexdump,TRUE);
 		break;
 	}
+}
+void hon_parse_channel_silence_placed(PurpleConnection* gc,gchar* buffer){
+	PurpleConversation *convo;
+	hon_account* hon = gc->proto_data;
+	gchar * msg , *silencer, *silenced,*chatname;
+	guint32 duration;
+	chatname = read_string(buffer);
+	silencer = read_string(buffer);
+	silenced = read_string(buffer);
+	duration = read_guint32(buffer);
+	convo = purple_find_conversation_with_account(PURPLE_CONV_TYPE_CHAT,chatname,gc->account);
+	if (!convo) {
+		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got a silenced message for %s, which doesn't exist\n", buffer);
+		return;
+	}
+	msg = g_strdup_printf(_("%s has been silenced by %s for %d ms."),silenced,silencer,duration);
+	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+	g_free(msg);
+}
+void hon_parse_channel_silence_lifted(PurpleConnection* gc,gchar* buffer){
+	PurpleConversation *convo;
+	hon_account* hon = gc->proto_data;
+	gchar * msg;
+	convo = purple_find_conversation_with_account(PURPLE_CONV_TYPE_CHAT,buffer,gc->account);
+	if (!convo) {
+		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got an unsilenced message for %s, which doesn't exist\n", buffer);
+		return;
+	}
+	msg = g_strdup_printf(_("Your silence has been lifted in the channel '%s'."),buffer);
+	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+	g_free(msg);
+}
+void hon_parse_channel_silenced(PurpleConnection* gc,gchar* buffer){
+	PurpleConversation *convo;
+	hon_account* hon = gc->proto_data;
+	guint32 chan_id = read_guint32(buffer);
+	convo = purple_find_chat(gc,chan_id);
+	if (!convo) {
+		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got a silenced message for %d, which doesn't exist\n", chan_id);
+		return;
+	}
+	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", _("You are silenced in this channel and cannot talk."), PURPLE_MESSAGE_SYSTEM, time(NULL));
 }
 void hon_parse_channel_password_changed(PurpleConnection* gc,gchar* buffer){
 	PurpleConversation *convo;
@@ -822,5 +873,8 @@ gboolean hon_send_channel_unban(PurpleConnection* gc,guint32 chatid, const gchar
 }
 gboolean hon_send_channel_password(PurpleConnection* gc,guint32 chatid, const gchar* password){
 	return hon_send_packet(gc,HON_CS_CHANNEL_SET_PASSWORD/*0x33*/,"is",chatid,password);
+}
+gboolean hon_send_channel_silence(PurpleConnection* gc,guint32 chatid, const gchar* user,guint32 duration){
+	return hon_send_packet(gc,HON_CS_CHANNEL_SILENCE_USER/*0x38*/,"isi",chatid,user,duration);
 }
 

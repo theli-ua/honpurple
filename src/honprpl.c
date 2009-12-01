@@ -1236,6 +1236,14 @@ static PurpleCmdRet honprpl_password(PurpleConversation *conv, const gchar *cmd,
 	return PURPLE_CMD_RET_OK;
 }
 
+static PurpleCmdRet honprpl_silence(PurpleConversation *conv, const gchar *cmd,
+								 gchar **args, gchar **error, void *userdata) 
+{
+	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+	guint32 duration = atoi(args[1]) * 1000;
+	hon_send_channel_silence(conv->account->gc,chat->id,args[0],duration);
+	return PURPLE_CMD_RET_OK;
+}
 static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 								  gchar **args, gchar **error, void *userdata) 
 {
@@ -1541,6 +1549,15 @@ static void honprpl_init(PurplePlugin *plugin)
 		_("Unban user"),
 		GINT_TO_POINTER(HON_CS_CHANNEL_UNBAN)); 
 
+	/* unban */
+	purple_cmd_register("silence",
+		"ww",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_silence,
+		_("Silence user\nsilence <user> <duration in seconds>"),
+		GINT_TO_POINTER(HON_CS_CHANNEL_UNBAN)); 
 	_HON_protocol = plugin;
 }
 

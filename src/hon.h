@@ -52,6 +52,9 @@ void hon_parse_channel_banned(PurpleConnection *gc,gchar* buffer);
 void hon_parse_channel_ban_unban(PurpleConnection *gc,gchar* buffer,guint8 packet_id);
 void hon_parse_join_channel_password(PurpleConnection *gc,gchar* buffer);
 void hon_parse_channel_password_changed(PurpleConnection* gc,gchar* buffer);
+void hon_parse_channel_silenced(PurpleConnection* gc,gchar* buffer);
+void hon_parse_channel_silence_lifted(PurpleConnection* gc,gchar* buffer);
+void hon_parse_channel_silence_placed(PurpleConnection* gc,gchar* buffer);
 
 gboolean hon_send_pong(PurpleConnection *gc);
 gboolean hon_send_login(PurpleConnection *gc,const gchar* cookie);
@@ -74,5 +77,5 @@ gboolean hon_send_channel_ban(PurpleConnection* gc,guint32 chatid, const gchar* 
 gboolean hon_send_channel_unban(PurpleConnection* gc,guint32 chatid, const gchar* banned);
 gboolean hon_send_channel_password(PurpleConnection* gc,guint32 chatid, const gchar* password);
 gboolean hon_send_join_chat_password(PurpleConnection* gc,const gchar *room,const gchar* password);
-
+gboolean hon_send_channel_silence(PurpleConnection* gc,guint32 chatid, const gchar* user,guint32 duration);
 #endif

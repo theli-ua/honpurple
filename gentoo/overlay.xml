@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<layman>
+<overlays>
+<overlay
+type = "svn"
+src  = "http://honpurple.googlecode.com/svn/trunk/gentoo/overlay"
+contact = "theli.ua@gmail.com"
+name = "honpurple">
+<link>
+http://code.google.com/p/honpurple/
+</link>
+<description>
+Contains ebuilds for honpurple.
+</description>
+</overlay>
+</overlays>

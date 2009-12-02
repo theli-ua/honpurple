@@ -1,5 +1,7 @@
 TARGET := src/libhon.so
 VERSION := $(shell cat src/honprpl.h | sed -n 's/.*DISPLAY_VERSION.*"\(.*\)"/\1/p')
+PREFIX = /usr
+DESTDIR =
 
 .PHONY: all
 
@@ -10,6 +12,7 @@ clean:
 	rm -rf deb dist
 
 install: all
+	@install -m 0755 ${TARGET} ${DESTDFIR}/${PREFIX}/lib/purple-2
 	mkdir -p ~/.purple/plugins/
 	cp $(TARGET) ~/.purple/plugins/
 

@@ -28,8 +28,6 @@
 #include <netinet/tcp.h>
 #endif
 
-
-static PurplePlugin *_HON_protocol = NULL;
 static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	nick2id_cb_data* cb_data = user_data;
 	PurpleConnection *gc = cb_data->buddy->account->gc;
@@ -1152,7 +1150,49 @@ static PurpleCmdRet honprpl_send_whisper(PurpleConversation *conv, const gchar *
 	return PURPLE_CMD_RET_OK;
 	
 }
-
+static PurpleCmdRet honprpl_channel_auth(PurpleConversation *conv, const gchar *cmd,
+										 gchar **args, gchar **error, void *userdata) 
+{
+	const char *command = args[0];
+	PurpleConnection* gc = conv->account->gc;
+	hon_account* hon = conv->account->gc->proto_data;
+	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+	if (!g_strcmp0(command,"enable"))
+	{
+		hon_send_channel_auth_enable(gc,chat->id);
+	}
+	else if (!g_strcmp0(command,"disable")) 
+	{
+		hon_send_channel_auth_disable(gc,chat->id);
+	}
+	else if (!g_strcmp0(command,"add") || !g_strcmp0(command,"a")) 
+	{
+		if (!args[1] || strlen(args[1]) < 1)
+		{
+			*error = g_strdup(_("Command missing username"));
+			return PURPLE_CMD_RET_FAILED;
+		}
+		hon_send_channel_auth_add(gc,chat->id,args[1]);
+	}
+	else if (!g_strcmp0(command,"delete") || !g_strcmp0(command,"d")) 
+	{
+		if (!args[1] || strlen(args[1]) < 1)
+		{
+			*error = g_strdup(_("Command missing username"));
+			return PURPLE_CMD_RET_FAILED;
+		}
+		hon_send_channel_auth_delete(gc,chat->id,args[1]);
+	}
+	else if (!g_strcmp0(command,"list") || !g_strcmp0(command,"l")) 
+	{
+		hon_send_channel_auth_list(gc,chat->id);
+	}
+	else {
+		*error = g_strdup(_("Unknown auth command"));
+		return PURPLE_CMD_RET_FAILED;
+	}
+	return PURPLE_CMD_RET_OK;
+}
 static PurpleCmdRet honprpl_clan_commands(PurpleConversation *conv, const gchar *cmd,
 								 gchar **args, gchar **error, void *userdata) 
 {
@@ -1490,6 +1530,14 @@ static void honprpl_init(PurplePlugin *plugin)
 		honprpl_topic,
 		_("Set channel topic"),
 		NULL); 
+	purple_cmd_register("t",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_topic,
+		_("Set channel topic"),
+		NULL); 
 
 	/* password */
 	purple_cmd_register("password",
@@ -1500,9 +1548,25 @@ static void honprpl_init(PurplePlugin *plugin)
 		honprpl_password,
 		_("Set channel password"),
 		NULL); 
+	purple_cmd_register("pass",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS,
+		"prpl-hon",
+		honprpl_password,
+		_("Set channel password"),
+		NULL); 
 
-	/* topic */
+	/* kick */
 	purple_cmd_register("kick",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_kick,
+		_("Kick user"),
+		GINT_TO_POINTER(HON_CS_CHANNEL_KICK)); 
+	purple_cmd_register("k",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
 		PURPLE_CMD_FLAG_CHAT,
@@ -1519,9 +1583,25 @@ static void honprpl_init(PurplePlugin *plugin)
 		"prpl-hon",
 		honprpl_kick,
 		_("Promote user"),
+		GINT_TO_POINTER(HON_CS_CHANNEL_PROMOTE));
+	purple_cmd_register("p",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_kick,
+		_("Promote user"),
 		GINT_TO_POINTER(HON_CS_CHANNEL_PROMOTE)); 
 	/* demote */
 	purple_cmd_register("demote",
+		"s",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_kick,
+		_("Promote user"),
+		GINT_TO_POINTER(HON_CS_CHANNEL_DEMOTE)); 
+	purple_cmd_register("d",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
 		PURPLE_CMD_FLAG_CHAT,
@@ -1558,7 +1638,25 @@ static void honprpl_init(PurplePlugin *plugin)
 		honprpl_silence,
 		_("Silence user\nsilence <user> <duration in seconds>"),
 		GINT_TO_POINTER(HON_CS_CHANNEL_UNBAN)); 
-	_HON_protocol = plugin;
+
+	/* channel auth */
+	purple_cmd_register("auth",
+		"wws",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS,
+		"prpl-hon",
+		honprpl_channel_auth,
+		_("auth enable\nauth disable\nauth add\nauth delete\nauth list"),
+		GINT_TO_POINTER(HON_CS_CHANNEL_UNBAN)); 
+	purple_cmd_register("a",
+		"wws",                  /* args: user */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS,
+		"prpl-hon",
+		honprpl_channel_auth ,
+		_("auth enable\nauth disable\nauth add\nauth delete\nauth list"),
+		GINT_TO_POINTER(HON_CS_CHANNEL_UNBAN)); 
+	
 }
 
 static void honprpl_destroy(PurplePlugin *plugin) {

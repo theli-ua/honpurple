@@ -168,6 +168,19 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_MESSAGE_ALL/*0x39*/:
 		hon_parse_global_notification(gc,buffer);
 		break;
+	case HON_SC_CHANNEL_AUTH_ENABLE:
+	case HON_SC_CHANNEL_AUTH_DISABLE:
+		hon_parse_channel_auth_enable_disable(gc,buffer,packet_id);
+		break;
+	case HON_SC_CHANNEL_AUTH_ADD:
+	case HON_SC_CHANNEL_AUTH_DELETE:
+	case HON_SC_CHANNEL_ADD_AUTH_FAIL:
+	case HON_SC_CHANNEL_DEL_AUTH_FAIL:
+		hon_parse_channel_auth_add_delete(gc,buffer,packet_id);
+		break;
+	case HON_SC_CHANNEL_AUTH_LIST:
+		hon_parse_channel_auth_list(gc,buffer);
+		break;
 	case HON_SC_CHANNEL_PASSWORD_CHANGED/*0x43*/:
 		hon_parse_channel_password_changed(gc,buffer);
 		break;
@@ -181,6 +194,75 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 		g_string_free(hexdump,TRUE);
 		break;
 	}
+}
+void hon_parse_channel_auth_list(PurpleConnection *gc,gchar* buffer)
+{
+	hon_account* hon = gc->proto_data;
+	PurpleConversation* chat;
+	guint32 count,chatid = read_guint32(buffer);
+	count = read_guint32(buffer);
+	chat = purple_find_chat(gc,chatid);
+	if (!chat)
+		return;
+	purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", 
+		_("Listing Authorized Users..."),
+		PURPLE_MESSAGE_SYSTEM, time(NULL));
+	if (count == 0)
+	{
+		purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", 
+			_("There are no authorized users for this channel."),
+			PURPLE_MESSAGE_SYSTEM, time(NULL));
+	} 
+	else
+	{
+		while (count--)
+		{
+			purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", 
+				buffer,
+				PURPLE_MESSAGE_SYSTEM, time(NULL));
+			buffer += strlen(buffer) + 1;
+		}
+	}
+	
+}
+void hon_parse_channel_auth_add_delete(PurpleConnection *gc,gchar* buffer,guint8 packet_id)
+{
+	hon_account* hon = gc->proto_data;
+	PurpleConversation* chat;
+	gchar* msg_template,*msg;
+	guint32 chatid = read_guint32(buffer);
+	chat = purple_find_chat(gc,chatid);
+	if (!chat)
+		return;
+	if (packet_id == HON_SC_CHANNEL_AUTH_ADD)
+		msg_template = _("%s has been added to the authorization list.");
+	else if (packet_id == HON_SC_CHANNEL_AUTH_DELETE)
+		msg_template = _("%s has been removed from the authorization list.");
+	else if (packet_id == HON_SC_CHANNEL_ADD_AUTH_FAIL)
+		msg_template = _("%s is already on the authorization list.");
+	else /* if (packet_id == HON_SC_CHANNEL_DEL_AUTH_FAIL)*/
+		msg_template = _("%s is not on the authorization list.");
+	msg = g_strdup_printf(msg_template,buffer);
+	purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "",msg,
+		PURPLE_MESSAGE_SYSTEM, time(NULL));
+	g_free(msg);
+}
+void hon_parse_channel_auth_enable_disable(PurpleConnection *gc,gchar* buffer,guint8 packet_id)
+{
+	hon_account* hon = gc->proto_data;
+	PurpleConversation* chat;
+	guint32 chatid = read_guint32(buffer);
+	chat = purple_find_chat(gc,chatid);
+	if (!chat)
+		return;
+	if (packet_id == HON_SC_CHANNEL_AUTH_ENABLE)
+		purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", 
+		_("Authorization has been enabled for this channel, you must now be on the authorized list to join."),
+		PURPLE_MESSAGE_SYSTEM, time(NULL));
+	else
+		purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "",
+		_("Authorization has been disabled for this channel, all users can now join."),
+		PURPLE_MESSAGE_SYSTEM, time(NULL));
 }
 void hon_parse_channel_silence_placed(PurpleConnection* gc,gchar* buffer){
 	PurpleConversation *convo;
@@ -752,7 +834,7 @@ void hon_parse_chat_topic(PurpleConnection* gc,gchar* buffer){
 	}
 	topic_raw = hon_strip(buffer,FALSE);
 	topic_html = hon2html(buffer);
-	msg = g_strdup_printf(_("%s has changed the topic to: %s"), "someone", topic_html);
+	msg = g_strdup_printf(_("Topic changed to '%s'."), topic_html);
 
 	purple_conv_chat_set_topic(PURPLE_CONV_CHAT(convo), NULL, topic_raw);
 	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
@@ -876,5 +958,20 @@ gboolean hon_send_channel_password(PurpleConnection* gc,guint32 chatid, const gc
 }
 gboolean hon_send_channel_silence(PurpleConnection* gc,guint32 chatid, const gchar* user,guint32 duration){
 	return hon_send_packet(gc,HON_CS_CHANNEL_SILENCE_USER/*0x38*/,"isi",chatid,user,duration);
+}
+gboolean hon_send_channel_auth_enable(PurpleConnection* gc,guint32 chatid){
+	return hon_send_packet(gc,HON_CS_CHANNEL_AUTH_ENABLE,"i",chatid);
+}
+gboolean hon_send_channel_auth_disable(PurpleConnection* gc,guint32 chatid){
+	return hon_send_packet(gc,HON_CS_CHANNEL_AUTH_DISABLE,"i",chatid);
+}
+gboolean hon_send_channel_auth_add(PurpleConnection* gc,guint32 chatid,gchar* username){
+	return hon_send_packet(gc,HON_CS_CHANNEL_AUTH_ADD,"is",chatid,username);
+}
+gboolean hon_send_channel_auth_delete(PurpleConnection* gc,guint32 chatid,gchar* username){
+	return hon_send_packet(gc,HON_CS_CHANNEL_AUTH_DELETE,"is",chatid,username);
+}
+gboolean hon_send_channel_auth_list(PurpleConnection* gc,guint32 chatid){
+	return hon_send_packet(gc,HON_CS_CHANNEL_AUTH_LIST,"i",chatid);
 }
 

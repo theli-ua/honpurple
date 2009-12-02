@@ -414,6 +414,7 @@ static GList *honprpl_chat_info(PurpleConnection *gc) {
 	pce->label = _("Password");
 	pce->identifier = "password";
 	pce->required = FALSE;
+	pce->secret = TRUE;
 
 	return g_list_append(m, pce);
 }

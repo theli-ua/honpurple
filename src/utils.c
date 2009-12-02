@@ -1,5 +1,5 @@
 #include "utils.h"
-//#include <string.h>
+#include <string.h>
 //#include <stdlib.h>
 #ifdef _WIN32
 #include <libc_interface.h>

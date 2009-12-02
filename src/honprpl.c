@@ -32,8 +32,8 @@ static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 	nick2id_cb_data* cb_data = user_data;
 	PurpleConnection *gc = cb_data->buddy->account->gc;
 	hon_account* hon = gc->proto_data;
-	deserialized_element* data;
-	deserialized_element* data2;
+	deserialized_element* data = NULL;
+	deserialized_element* data2 = NULL;
 
 	if(
 		!url_text
@@ -56,7 +56,6 @@ static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 	g_free(cb_data);
 }
 static void honprpl_nick2id(PurpleBuddy* buddy,nick2idCallback cb,nick2idCallback error_cb){
-	hon_account* hon = buddy->account->gc->proto_data;
 	nick2id_cb_data* cb_data = g_new0(nick2id_cb_data,1);
 	gchar* url;
 	cb_data->buddy = buddy;
@@ -228,7 +227,7 @@ static const char *honprpl_list_icon(PurpleAccount *acct, PurpleBuddy *buddy)
 static char *honprpl_status_text(PurpleBuddy *buddy) {
 	PurplePresence *presence = purple_buddy_get_presence(buddy);
 	PurpleStatus *status = purple_presence_get_active_status(presence);
-	const gchar* server = purple_status_get_attr_string( status, HON_SERVER_ATTR);
+	//const gchar* server = purple_status_get_attr_string( status, HON_SERVER_ATTR);
 	const gchar* gamename = purple_status_get_attr_string(  status, HON_GAME_ATTR);
 	GString* info = g_string_new(NULL);
 
@@ -256,8 +255,8 @@ static const char* honprpl_list_emblem(PurpleBuddy *b)
 	PurplePresence *presence = purple_buddy_get_presence(b);
 	PurpleStatus *purple_status = purple_presence_get_active_status(presence);
 
-	PurpleConnection *gc = purple_account_get_connection(purple_buddy_get_account(b));
-	guint32 status = purple_status_get_attr_int(purple_status,HON_STATUS_ATTR);
+	//PurpleConnection *gc = purple_account_get_connection(purple_buddy_get_account(b));
+	//guint32 status = purple_status_get_attr_int(purple_status,HON_STATUS_ATTR);
 	guint32 flags = purple_status_get_attr_int(purple_status,HON_FLAGS_ATTR);
 	
 	/*if(status == HON_STATUS_INGAME || status == HON_STATUS_INLOBBY)
@@ -736,15 +735,13 @@ static void honprpl_close(PurpleConnection *gc)
 static int honprpl_send_im(PurpleConnection *gc, const char *who,
 						   const char *message, PurpleMessageFlags flags)
 {
-	const char *from_username = gc->account->username;
-	hon_account* hon = gc->proto_data;
 	char *plain;
 	int res;
 	purple_markup_html_to_xhtml(message, NULL, &plain);
 
 #ifdef _DEBUG
-	purple_debug_info(HON_DEBUG_PREFIX, "sending message from %s to %s: %s\n",
-		from_username, who, message);
+	purple_debug_info(HON_DEBUG_PREFIX, "sending message to %s: %s\n",
+		who, message);
 #endif
 	res = hon_send_pm(gc,who,plain);
 	g_free(plain);
@@ -760,7 +757,6 @@ static int honprpl_send_im(PurpleConnection *gc, const char *who,
 static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	PurpleBuddy* buddy = user_data;
 	PurpleConnection *gc = buddy->account->gc;
-	hon_account* hon = gc->proto_data;
 	deserialized_element* data = NULL;
 	deserialized_element* needed_data = NULL;
 	deserialized_element* info_row = NULL;
@@ -882,7 +878,6 @@ static void honprpl_info_nick2id_error_callback(PurpleBuddy* buddy){
 }
 
 static void honprpl_get_info(PurpleConnection *gc, const char *username) {
-	hon_account* hon = gc->proto_data;
 	PurpleBuddy* OrigBuddy = purple_find_buddy(gc->account,username);
 	PurpleBuddy* buddy = purple_buddy_new(gc->account,username,NULL);
 
@@ -899,9 +894,8 @@ static void honprpl_get_info(PurpleConnection *gc, const char *username) {
 static void honpurple_add_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	PurpleBuddy *buddy = user_data;
 	PurpleConnection *gc = buddy->account->gc;
-	hon_account* hon = gc->proto_data;
-	deserialized_element* data;
-	deserialized_element* data2;
+	deserialized_element* data = NULL;
+	deserialized_element* data2 = NULL;
 
 	if(
 		!url_text
@@ -959,9 +953,8 @@ static void honprpl_add_buddies(PurpleConnection *gc, GList *buddies,
 static void honpurple_remove_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	PurpleBuddy *buddy = user_data;
 	PurpleConnection *gc = buddy->account->gc;
-	hon_account* hon = gc->proto_data;
-	deserialized_element* data;
-	deserialized_element* data2;
+	deserialized_element* data = NULL;
+	deserialized_element* data2 = NULL;
 
 	if(
 		!url_text
@@ -1156,7 +1149,6 @@ static PurpleCmdRet honprpl_channel_auth(PurpleConversation *conv, const gchar *
 {
 	const char *command = args[0];
 	PurpleConnection* gc = conv->account->gc;
-	hon_account* hon = conv->account->gc->proto_data;
 	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
 	if (!g_strcmp0(command,"enable"))
 	{

@@ -3,7 +3,7 @@
 #include "debug.h"
 #include <stdarg.h>
 #include <notify.h>
-
+#include <string.h>
 /*
 	Macroses and utilities
  */
@@ -26,7 +26,7 @@ static gboolean hon_send_packet(PurpleConnection* gc,guint8 packet_id,const gcha
 	{
 		switch (*paramstring){
 			case 'i':
-				intparam = va_arg( marker, guint32);
+				intparam = va_arg( marker, int);
 				buffer = g_byte_array_append(buffer,(const guint8*)&intparam,4);
 				break;
 			case 's':
@@ -34,7 +34,7 @@ static gboolean hon_send_packet(PurpleConnection* gc,guint8 packet_id,const gcha
 				buffer = g_byte_array_append(buffer,stringparam,strlen(stringparam)+1);
 				break;
 			case 'b':
-				byteparam = va_arg( marker, guint8);
+				byteparam = va_arg( marker, int);
 				buffer = g_byte_array_append(buffer,&byteparam,1);
 				break;
 		}

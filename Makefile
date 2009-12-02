@@ -23,9 +23,9 @@ sdist:
 	tar -cvjp --exclude .svn -f dist/honpurple-$(VERSION).tar.bz2 data src Makefile*
 deb: all
 	mkdir -p dist
-	mkdir -p deb/usr/lib/pidgin/
+	mkdir -p deb/usr/lib/purple-2
 	mkdir -p deb/usr/share/pixmaps/pidgin
-	cp $(TARGET) deb/usr/lib/pidgin/
+	cp $(TARGET) deb/usr/lib/purple-2/
 	rsync -r --exclude=.svn data/pixmaps deb/usr/share/
 	rsync -r --exclude=.svn DEBIAN deb/
 	sed -i "s:HONPURPLE_VERSION:$(VERSION):" deb/DEBIAN/control

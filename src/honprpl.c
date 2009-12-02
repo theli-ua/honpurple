@@ -1025,7 +1025,7 @@ static void honprpl_remove_buddies(PurpleConnection *gc, GList *buddies,
 
 static void honprpl_join_chat(PurpleConnection *gc, GHashTable *components) {
 	gchar* password = g_hash_table_lookup(components, "password");
-	if (strlen(password) > 0)
+	if (password && strlen(password) > 0)
 		hon_send_join_chat_password(gc,g_hash_table_lookup(components, "room"),password);
 	else
 		hon_send_join_chat(gc,g_hash_table_lookup(components, "room"));

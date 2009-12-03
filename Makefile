@@ -29,5 +29,7 @@ deb: all
 	rsync -r --exclude=.svn data/pixmaps deb/usr/share/
 	rsync -r --exclude=.svn DEBIAN deb/
 	sed -i "s:HONPURPLE_VERSION:$(VERSION):" deb/DEBIAN/control
-	sed -i "s:i386:${ARCH}:" deb/DEBIAN/control
+ifeq ($(ARCH), x86_64)
+	sed -i "s:i386:amd64:" deb/DEBIAN/control
+endif
 	dpkg-deb -b deb dist/honpurple_${ARCH}-$(VERSION).deb

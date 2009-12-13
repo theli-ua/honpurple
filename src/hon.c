@@ -545,8 +545,7 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 		}
 		if (status == HON_STATUS_INGAME)
 		{
-			gamename = read_string(buffer);
-			gamename = hon_strip(gamename,TRUE);
+			gamename = hon_strip(buffer,TRUE);
 		}
 		if(!status)
 			status_id = HON_STATUS_OFFLINE_S;
@@ -555,9 +554,17 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 			HON_BUDDYID_ATTR , id,
 			HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
 			server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
-
 		g_free(gamename);
-
+#ifdef MINBIF
+		if (status == HON_STATUS_INGAME)
+			status_id = g_strdup_printf("%s %s %d %s",MINBIF_STATUS,
+					nick,status,buffer);
+		else
+			status_id = g_strdup_printf("%s %s %d",MINBIF_STATUS,
+					nick,status);
+		serv_got_im(gc,MINBIF_USER,status_id,PURPLE_MESSAGE_RECV,time(NULL));
+		g_free(status_id);
+#endif
 	}
 }
 void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
@@ -568,6 +575,9 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 	guint32 status;
 	guint32 flags;
 	guint32 matchid = 0;
+#ifdef MINBIF
+	gchar* raw_gamename;
+#endif
 
 	guint32 id = read_guint32(buffer);
 	status = *buffer++;
@@ -583,6 +593,9 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 	}
 	if (status == HON_STATUS_INGAME)
 	{
+#ifdef MINBIF
+		raw_gamename = buffer;
+#endif
 		gamename = read_string(buffer);
 		gamename = hon_strip(gamename,TRUE);
 		matchid = read_guint32(buffer);
@@ -598,6 +611,17 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 		matchid > 0 ? HON_MATCHID_ATTR : NULL, matchid,
 		NULL);
 	g_free(gamename);
+	
+#ifdef MINBIF
+	if (status == HON_STATUS_INGAME)
+		status_id = g_strdup_printf("%s %s %d %d %s",MINBIF_STATUS,
+				nick,status,matchid,raw_gamename);
+	else
+		status_id = g_strdup_printf("%s %s %d",MINBIF_STATUS,
+				nick,status);
+	serv_got_im(gc,MINBIF_USER,status_id,PURPLE_MESSAGE_RECV,time(NULL));
+	g_free(status_id);
+#endif
 }
 
 
@@ -886,6 +910,16 @@ void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
 
 	purple_conversation_write(hon->whois_conv, "",message, PURPLE_MESSAGE_SYSTEM|PURPLE_MESSAGE_NO_LOG, time(NULL));
 	g_free(message);
+	
+#ifdef MINBIF
+	if (packet_id == 0x2d)
+		message = g_strdup_printf("%s %s %d %s", MINBIF_INFO,user,packet_id, buffer + (strlen(buffer) + 1));
+	else
+		message = g_strdup_printf("%s %s %d", MINBIF_INFO,user,packet_id);
+	serv_got_im(gc,MINBIF_USER,message,PURPLE_MESSAGE_RECV,time(NULL));
+	g_free(message);
+#endif
+
 	hon->whois_conv = NULL;
 }
 

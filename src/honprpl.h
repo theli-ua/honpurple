@@ -78,4 +78,10 @@ typedef struct {
 	PurpleBuddy* buddy;
 }nick2id_cb_data;
 
+#undef MINBIF
+#ifdef MINBIF
+#define MINBIF_USER "minbif"
+#define MINBIF_STATUS "internal_status"
+#define MINBIF_INFO "internal_info"
+#endif
 #endif

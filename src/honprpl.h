@@ -81,7 +81,7 @@ typedef struct {
 #undef MINBIF
 #ifdef MINBIF
 #define MINBIF_USER "minbif"
-#define MINBIF_STATUS "internal_status"
-#define MINBIF_INFO "internal_info"
+#define MINBIF_STATUS "internalstatus"
+#define MINBIF_INFO "internalinfo"
 #endif
 #endif

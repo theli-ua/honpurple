@@ -557,7 +557,7 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 		g_free(gamename);
 #ifdef MINBIF
 		if (status == HON_STATUS_INGAME)
-			status_id = g_strdup_printf("%s %s %d %s",MINBIF_STATUS,
+			status_id = g_strdup_printf("%s %s %d 0 %s",MINBIF_STATUS,
 					nick,status,buffer);
 		else
 			status_id = g_strdup_printf("%s %s %d",MINBIF_STATUS,
@@ -913,7 +913,7 @@ void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
 	
 #ifdef MINBIF
 	if (packet_id == 0x2d)
-		message = g_strdup_printf("%s %s %d %s", MINBIF_INFO,user,packet_id, buffer + (strlen(buffer) + 1));
+		message = g_strdup_printf("%s %s %d %s %s", MINBIF_INFO,user,packet_id, buffer + (strlen(buffer) + 1),buffer);
 	else
 		message = g_strdup_printf("%s %s %d", MINBIF_INFO,user,packet_id);
 	serv_got_im(gc,MINBIF_USER,message,PURPLE_MESSAGE_RECV,time(NULL));

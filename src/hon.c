@@ -546,6 +546,7 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 		if (status == HON_STATUS_INGAME)
 		{
 			gamename = hon_strip(buffer,TRUE);
+			read_string(buffer);
 		}
 		if(!status)
 			status_id = HON_STATUS_OFFLINE_S;

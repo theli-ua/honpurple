@@ -526,6 +526,9 @@ void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
 }
 void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 	guint32 status,flags;
+#ifdef MINBIF
+	gchar* raw_gamename;
+#endif
 	hon_account* hon;
 	guint32 id,count = read_guint32(buffer);
 	hon = gc->proto_data;
@@ -545,6 +548,9 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 		}
 		if (status == HON_STATUS_INGAME)
 		{
+#ifdef MINBIF
+			raw_gamename = buffer;
+#endif
 			gamename = hon_strip(buffer,TRUE);
 			read_string(buffer);
 		}
@@ -559,7 +565,7 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 #ifdef MINBIF
 		if (status == HON_STATUS_INGAME)
 			status_id = g_strdup_printf("%s %s %d 0 %s",MINBIF_STATUS,
-					nick,status,buffer);
+					nick,status,raw_gamename);
 		else
 			status_id = g_strdup_printf("%s %s %d",MINBIF_STATUS,
 					nick,status);

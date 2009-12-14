@@ -919,7 +919,7 @@ void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
 	g_free(message);
 	
 #ifdef MINBIF
-	if (packet_id == 0x2d)
+	if (packet_id == 0x2e)
 		message = g_strdup_printf("%s %s %d %s %s", MINBIF_INFO,user,packet_id, buffer + (strlen(buffer) + 1),buffer);
 	else
 		message = g_strdup_printf("%s %s %d", MINBIF_INFO,user,packet_id);

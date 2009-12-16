@@ -58,6 +58,7 @@ void hon_parse_channel_silence_placed(PurpleConnection* gc,gchar* buffer);
 void hon_parse_channel_auth_enable_disable(PurpleConnection *gc,gchar* buffer,guint8 packet_id);
 void hon_parse_channel_auth_add_delete(PurpleConnection *gc,gchar* buffer,guint8 packet_id);
 void hon_parse_channel_auth_list(PurpleConnection *gc,gchar* buffer);
+void hon_parse_emote(PurpleConnection *gc,gchar* buffer);
 
 gboolean hon_send_pong(PurpleConnection *gc);
 gboolean hon_send_login(PurpleConnection *gc,const gchar* cookie);
@@ -86,4 +87,5 @@ gboolean hon_send_channel_auth_disable(PurpleConnection* gc,guint32 chatid);
 gboolean hon_send_channel_auth_add(PurpleConnection* gc,guint32 chatid,gchar* username);
 gboolean hon_send_channel_auth_delete(PurpleConnection* gc,guint32 chatid,gchar* username);
 gboolean hon_send_channel_auth_list(PurpleConnection* gc,guint32 chatid);
+gboolean hon_send_emote(PurpleConnection* gc,guint32 chatid,const gchar* string);
 #endif

@@ -42,6 +42,7 @@
 #define	 HON_SC_CHANNEL_ADD_AUTH_FAIL	0x44
 #define	 HON_SC_CHANNEL_DEL_AUTH_FAIL	0x45
 #define	 HON_SC_JOIN_CHANNEL_PASSWORD 	 0x46
+#define	 HON_SC_CHANNEL_EMOTE 	 0x65
 
 /* client -> server */
 #define	 HON_CS_PONG 	 0x02
@@ -71,4 +72,5 @@
 #define	 HON_CS_CHANNEL_SET_PASSWORD 	 0x43
 #define	 HON_CS_JOIN_CHANNEL_PASSWORD 	 0x46
 #define	 HON_CS_CLAN_ADD_MEMBER 	 0x47
+#define	 HON_CS_CHANNEL_EMOTE 	 0x65
 #define	 HON_CS_AUTH_INFO 	 0xFF

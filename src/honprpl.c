@@ -1258,6 +1258,15 @@ static PurpleCmdRet honprpl_topic(PurpleConversation *conv, const gchar *cmd,
 	honprpl_set_chat_topic(conv->account->gc,chat->id,args[0]);
 	return PURPLE_CMD_RET_OK;
 }
+static PurpleCmdRet honprpl_channel_emote(PurpleConversation *conv, const gchar *cmd,
+								  gchar **args, gchar **error, void *userdata) 
+{
+	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+	hon_account* hon = conv->account->gc->proto_data;
+	hon_send_emote(conv->account->gc,chat->id,args[0]);
+	return PURPLE_CMD_RET_OK;
+}
+
 static PurpleCmdRet honprpl_password(PurpleConversation *conv, const gchar *cmd,
 								  gchar **args, gchar **error, void *userdata) 
 {
@@ -1650,6 +1659,22 @@ static void honprpl_init(PurplePlugin *plugin)
 		_("auth enable\nauth disable\nauth add\nauth delete\nauth list"),
 		GINT_TO_POINTER(HON_CS_CHANNEL_UNBAN)); 
 	
+	purple_cmd_register("e",
+		"s",                  /* args: string */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_channel_emote ,
+		_("emote string to send emote string :-/"),
+		NULL); 
+	purple_cmd_register("emote",
+		"s",                  /* args: string */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_channel_emote ,
+		_("emote string to send emote string :-/"),
+		NULL); 
 }
 
 static void honprpl_destroy(PurplePlugin *plugin) {

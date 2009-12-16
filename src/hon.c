@@ -187,6 +187,9 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_JOIN_CHANNEL_PASSWORD/*0x46*/:
 		hon_parse_join_channel_password(gc,buffer);
 		break;
+	case HON_SC_CHANNEL_EMOTE/*0x65*/:
+		hon_parse_emote(gc,buffer);
+		break;
 	default:
 		hexdump = g_string_new(NULL);
 		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
@@ -768,6 +771,22 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 
 	purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), hon->self.nickname, NULL,purple_flags , FALSE);
 }
+
+void hon_parse_emote(PurpleConnection *gc,gchar* buffer){
+	hon_account *hon = gc->proto_data;
+	guint32 account_id;
+	guint32 chan_id;
+	gchar* msg;
+	PurpleConversation* chat;
+	gchar* sender;
+	account_id = read_guint32(buffer);
+	chan_id = read_guint32(buffer);
+	msg = hon2html(buffer);
+	chat = purple_find_chat(gc,chan_id);
+	sender = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id));
+	serv_got_chat_in(gc,chan_id,sender ,PURPLE_MESSAGE_RECV,msg,time(NULL));
+	g_free(msg);
+}
 void hon_parse_chat_message(PurpleConnection *gc,gchar* buffer){
 	hon_account *hon = gc->proto_data;
 	guint32 account_id;
@@ -1014,5 +1033,8 @@ gboolean hon_send_channel_auth_delete(PurpleConnection* gc,guint32 chatid,gchar*
 }
 gboolean hon_send_channel_auth_list(PurpleConnection* gc,guint32 chatid){
 	return hon_send_packet(gc,HON_CS_CHANNEL_AUTH_LIST,"i",chatid);
+}
+gboolean hon_send_emote(PurpleConnection* gc,guint32 chatid,const gchar* string){
+	return hon_send_packet(gc,HON_CS_CHANNEL_EMOTE,"si",string,chatid);
 }
 

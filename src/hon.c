@@ -1037,4 +1037,6 @@ gboolean hon_send_channel_auth_list(PurpleConnection* gc,guint32 chatid){
 gboolean hon_send_emote(PurpleConnection* gc,guint32 chatid,const gchar* string){
 	return hon_send_packet(gc,HON_CS_CHANNEL_EMOTE,"si",string,chatid);
 }
-
+gboolean hon_send_join_game(PurpleConnection* gc,const gchar* status,guint32 matchid,gchar* server){
+	return hon_send_packet(gc,HON_CS_JOIN_GAME,"sis",status,matchid,server);
+}

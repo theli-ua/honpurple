@@ -1267,6 +1267,14 @@ static PurpleCmdRet honprpl_channel_emote(PurpleConversation *conv, const gchar 
 	purple_conv_chat_write(chat,hon->self.nickname,args[0],PURPLE_MESSAGE_SEND,time(NULL));
 	return PURPLE_CMD_RET_OK;
 }
+static PurpleCmdRet honprpl_join_game(PurpleConversation *conv, const gchar *cmd,
+										  gchar **args, gchar **error, void *userdata) 
+{
+	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+	hon_account* hon = conv->account->gc->proto_data;
+	hon_send_join_game(conv->account->gc,args[2],atoi(args[1]),args[0]);
+	return PURPLE_CMD_RET_OK;
+}
 
 static PurpleCmdRet honprpl_password(PurpleConversation *conv, const gchar *cmd,
 								  gchar **args, gchar **error, void *userdata) 
@@ -1675,6 +1683,15 @@ static void honprpl_init(PurplePlugin *plugin)
 		"prpl-hon",
 		honprpl_channel_emote ,
 		_("emote string to send emote string :-/"),
+		NULL); 
+
+	purple_cmd_register("joingame",
+		"wws",
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM,
+		"prpl-hon",
+		honprpl_join_game ,
+		_("pretend to join a game\n address:port matchid gamename"),
 		NULL); 
 }
 

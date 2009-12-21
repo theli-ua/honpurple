@@ -1264,6 +1264,7 @@ static PurpleCmdRet honprpl_channel_emote(PurpleConversation *conv, const gchar 
 	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
 	hon_account* hon = conv->account->gc->proto_data;
 	hon_send_emote(conv->account->gc,chat->id,args[0]);
+	purple_conv_chat_write(chat,hon->self.nickname,args[0],PURPLE_MESSAGE_SEND,time(NULL));
 	return PURPLE_CMD_RET_OK;
 }
 

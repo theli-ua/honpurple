@@ -1,7 +1,7 @@
 # Copyright 1999-2009 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
-
+EAPI=2
 inherit eutils
 DESCRIPTION="libpurple protocol plugin for Heroes of Newerth Chat Server"
 HOMEPAGE="http://code.google.com/p/honpurple/"

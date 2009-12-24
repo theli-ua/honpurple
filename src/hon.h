@@ -89,5 +89,6 @@ gboolean hon_send_channel_auth_delete(PurpleConnection* gc,guint32 chatid,gchar*
 gboolean hon_send_channel_auth_list(PurpleConnection* gc,guint32 chatid);
 gboolean hon_send_emote(PurpleConnection* gc,guint32 chatid,const gchar* string);
 gboolean hon_send_join_game(PurpleConnection* gc,const gchar* status,guint32 matchid,gchar* server);
+gboolean hon_send_whisper_buddies(PurpleConnection* gc,const gchar* message);
 
 #endif

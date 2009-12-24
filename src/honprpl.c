@@ -471,8 +471,8 @@ static int honprpl_read_recv(PurpleConnection *gc, int sock) {
 		hon->got_length = 0;
 	}
 
-	if (recv(sock, &packet_length,sizeof(&packet_length) ,MSG_PEEK) > 0)
-		len += honprpl_read_recv(gc,sock);
+	//if (recv(sock, &packet_length,sizeof(&packet_length) ,MSG_PEEK) > 0)
+	//	len += honprpl_read_recv(gc,sock);
 	return len;
 }
 
@@ -1267,6 +1267,15 @@ static PurpleCmdRet honprpl_channel_emote(PurpleConversation *conv, const gchar 
 	purple_conv_chat_write(chat,hon->self.nickname,args[0],PURPLE_MESSAGE_SEND,time(NULL));
 	return PURPLE_CMD_RET_OK;
 }
+static PurpleCmdRet honprpl_whisper_buddies(PurpleConversation *conv, const gchar *cmd,
+										  gchar **args, gchar **error, void *userdata) 
+{
+	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+	hon_account* hon = conv->account->gc->proto_data;
+	hon_send_whisper_buddies(conv->account->gc,args[0]);
+	purple_conv_chat_write(chat,hon->self.nickname,args[0],PURPLE_MESSAGE_SEND|PURPLE_MESSAGE_WHISPER,time(NULL));
+	return PURPLE_CMD_RET_OK;
+}
 static PurpleCmdRet honprpl_join_game(PurpleConversation *conv, const gchar *cmd,
 										  gchar **args, gchar **error, void *userdata) 
 {
@@ -1684,7 +1693,7 @@ static void honprpl_init(PurplePlugin *plugin)
 		honprpl_channel_emote ,
 		_("emote string to send emote string :-/"),
 		NULL); 
-
+#if 0
 	purple_cmd_register("joingame",
 		"wws",
 		PURPLE_CMD_P_DEFAULT,  /* priority */
@@ -1692,6 +1701,23 @@ static void honprpl_init(PurplePlugin *plugin)
 		"prpl-hon",
 		honprpl_join_game ,
 		_("pretend to join a game\n address:port matchid gamename"),
+		NULL);
+#endif
+	purple_cmd_register("whisperbuddies",
+		"s",
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM,
+		"prpl-hon",
+		honprpl_whisper_buddies ,
+		_("whisper all buddies"),
+		NULL);
+	purple_cmd_register("wb",
+		"s",
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM,
+		"prpl-hon",
+		honprpl_whisper_buddies ,
+		_("whisper all buddies"),
 		NULL); 
 }
 

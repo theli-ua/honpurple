@@ -130,6 +130,8 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 	case HON_SC_CHANNEL_LIST/*0x1F*/:
 		hon_parse_channel_list(gc,buffer);
 		break;
+	case HON_SC_WHISPER_BUDDIES/*0x20*/:
+		hon_parse_pm_whisper(gc,buffer,TRUE);
 	case HON_SC_MAX_CHANNELS/*0x21*/:
 		hon_parse_max_channels(gc,buffer);
 		break;
@@ -1039,4 +1041,7 @@ gboolean hon_send_emote(PurpleConnection* gc,guint32 chatid,const gchar* string)
 }
 gboolean hon_send_join_game(PurpleConnection* gc,const gchar* status,guint32 matchid,gchar* server){
 	return hon_send_packet(gc,HON_CS_JOIN_GAME,"sis",status,matchid,server);
+}
+gboolean hon_send_whisper_buddies(PurpleConnection* gc,const gchar* message){
+	return hon_send_packet(gc,HON_CS_WHISPER_BUDDIES,"s",message);
 }

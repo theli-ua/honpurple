@@ -1,3 +1,7 @@
+0.4
+	fix for 100% cpu usage on some ubuntu boxes
+	/e /emote
+	/wb /whisperbuddies (whisper all buddies)
 0.3
 	channel auth
 	silencing

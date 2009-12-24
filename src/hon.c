@@ -132,6 +132,7 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 		break;
 	case HON_SC_WHISPER_BUDDIES/*0x20*/:
 		hon_parse_pm_whisper(gc,buffer,TRUE);
+		break;
 	case HON_SC_MAX_CHANNELS/*0x21*/:
 		hon_parse_max_channels(gc,buffer);
 		break;

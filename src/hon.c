@@ -727,6 +727,7 @@ void hon_parse_pm_whisper(PurpleConnection *gc,int fd,guint16 is_whisper)
 void hon_parse_channel_list(PurpleConnection *gc,int fd){
 	hon_account* hon = gc->proto_data;
 	guint32 count = read_guint32(fd);
+	count = read_guint32(fd);
 	if (!hon->roomlist)
 		return;
 	while (count--)
@@ -1041,7 +1042,7 @@ void hon_parse_userinfo(PurpleConnection* gc,int fd,guint16 packet_id){
 	
 #ifdef MINBIF
 	if (packet_id == 0x2e)
-		message = g_strdup_printf("%s %s %d %s %s", MINBIF_INFO,user,packet_id, game,strtime);
+		message = g_strdup_printf("%s %s %d %s %s", MINBIF_INFO,user,packet_id, name,strtime);
 	else
 		message = g_strdup_printf("%s %s %d", MINBIF_INFO,user,packet_id);
 	serv_got_im(gc,MINBIF_USER,message,PURPLE_MESSAGE_RECV,time(NULL));

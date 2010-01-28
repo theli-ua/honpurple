@@ -1042,7 +1042,7 @@ void hon_parse_userinfo(PurpleConnection* gc,int fd,guint16 packet_id){
 	
 #ifdef MINBIF
 	if (packet_id == 0x2e)
-		message = g_strdup_printf("%s %s %d %s %s", MINBIF_INFO,user,packet_id, name,strtime);
+		message = g_strdup_printf("%s %s %d %s %s", MINBIF_INFO,user,packet_id, strtime, name);
 	else
 		message = g_strdup_printf("%s %s %d", MINBIF_INFO,user,packet_id);
 	serv_got_im(gc,MINBIF_USER,message,PURPLE_MESSAGE_RECV,time(NULL));

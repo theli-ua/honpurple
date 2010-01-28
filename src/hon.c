@@ -8,7 +8,11 @@
 #ifdef _WIN32
 #include <libc_interface.h>
 #undef vsnprintf /* conflicts with msvc definition and not needed */
+#else
+#include <sys/types.h>
+#include <sys/socket.h>
 #endif
+
 /*
 	Macroses and utilities
  */
@@ -100,6 +104,7 @@ int hon_parse_packet(PurpleConnection *gc, int sock){
 	purple_debug_info(HON_DEBUG_PREFIX, "packet:\nid:%X(%d)\nlength:%d\ndata:\n%s\n",packet_id,packet_id,packet_length, hexdump->str);
 	g_string_free(hexdump,TRUE);
 #endif
+	purple_debug_info(HON_DEBUG_PREFIX, "packet:id:%X(%d)\n",packet_id,packet_id);
 	switch (packet_id)
 	{
 	case 0:
@@ -223,6 +228,7 @@ int hon_parse_packet(PurpleConnection *gc, int sock){
 		read_guint32(sock);
 		break;
 	default:
+		purple_debug_info(HON_DEBUG_PREFIX, "unknown packet:id:%X(%d), trying to skip\n",packet_id,packet_id);
 		//try to skip this
 		buffer = g_malloc0(1024);
 		packet_id = recv(sock,buffer,1024,0);
@@ -592,15 +598,14 @@ void hon_parse_notification(PurpleConnection *gc,int fd){
 }
 void hon_parse_initiall_statuses(PurpleConnection *gc,int fd){
 	guint32 status,flags;
-#ifdef MINBIF
-	gchar* raw_gamename;
-#endif
+	
 	hon_account* hon;
 	guint32 id,count = read_guint32(fd);
 	hon = gc->proto_data;
 	purple_debug_info(HON_DEBUG_PREFIX, "parsing status for %d buddies\n",count);
 	while (count-- > 0)
 	{
+		gchar* raw_gamename = NULL;
 		gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S;
 
 		id = read_guint32(fd);
@@ -614,13 +619,8 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,int fd){
 		}
 		if (status == HON_STATUS_INGAME)
 		{
-			gchar* buffer = read_string(fd);
-#ifdef MINBIF
-			raw_gamename = buffer;
-#endif
-
-			gamename = hon_strip(buffer,TRUE);
-			g_free(buffer);
+			raw_gamename = read_string(fd);
+			gamename = hon_strip(raw_gamename,TRUE);
 		}
 		if(!status)
 			status_id = HON_STATUS_OFFLINE_S;
@@ -641,6 +641,7 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,int fd){
 		serv_got_im(gc,MINBIF_USER,status_id,PURPLE_MESSAGE_RECV,time(NULL));
 		g_free(status_id);
 #endif
+		g_free(raw_gamename);
 	}
 }
 void hon_parse_user_status(PurpleConnection *gc,int fd){
@@ -651,9 +652,7 @@ void hon_parse_user_status(PurpleConnection *gc,int fd){
 	guint32 status;
 	guint32 flags;
 	guint32 matchid = 0;
-#ifdef MINBIF
-	gchar* raw_gamename;
-#endif
+	gchar* raw_gamename = NULL;
 
 	guint32 id = read_guint32(fd);
 	status = read_byte(fd);
@@ -669,14 +668,9 @@ void hon_parse_user_status(PurpleConnection *gc,int fd){
 	}
 	if (status == HON_STATUS_INGAME)
 	{
-#ifdef MINBIF
-		raw_gamename = buffer;
-#endif
-
-		gchar* buffer = read_string(fd);
-		gamename = hon_strip(buffer,TRUE);
+		raw_gamename = read_string(fd);
+		gamename = hon_strip(raw_gamename,TRUE);
 		matchid = read_guint32(fd);
-		g_free(buffer);
 	}
 	if(!status)
 		status_id = HON_STATUS_OFFLINE_S;
@@ -701,6 +695,7 @@ void hon_parse_user_status(PurpleConnection *gc,int fd){
 	serv_got_im(gc,MINBIF_USER,status_id,PURPLE_MESSAGE_RECV,time(NULL));
 	g_free(status_id);
 #endif
+	g_free(raw_gamename);
 }
 
 
@@ -997,7 +992,7 @@ void hon_parse_userinfo(PurpleConnection* gc,int fd,guint16 packet_id){
 	hon_account* hon = gc->proto_data;
 	/* TODO: this is not right .. conversation could be closed already */
 	gchar* message = NULL;
-	gchar* name,*strtime;
+	gchar* name = NULL,*strtime = NULL;
 	gchar* user = read_string(fd);
 	gchar* buffer;
 	if (!hon->whois_conv)
@@ -1037,24 +1032,24 @@ void hon_parse_userinfo(PurpleConnection* gc,int fd,guint16 packet_id){
 		name = read_string(fd);
 		strtime = read_string(fd);
 		message = g_strdup_printf(_("User %s is ingame, game name: %s, game time: %s"),user,name,strtime);
-		g_free(name);
-		g_free(time);
 		break;
 	}
 
 	purple_conversation_write(hon->whois_conv, "",message, PURPLE_MESSAGE_SYSTEM|PURPLE_MESSAGE_NO_LOG, time(NULL));
 	g_free(message);
-	g_free(user);
+	
 	
 #ifdef MINBIF
 	if (packet_id == 0x2e)
-		message = g_strdup_printf("%s %s %d %s %s", MINBIF_INFO,user,packet_id, buffer + (strlen(buffer) + 1),buffer);
+		message = g_strdup_printf("%s %s %d %s %s", MINBIF_INFO,user,packet_id, game,strtime);
 	else
 		message = g_strdup_printf("%s %s %d", MINBIF_INFO,user,packet_id);
 	serv_got_im(gc,MINBIF_USER,message,PURPLE_MESSAGE_RECV,time(NULL));
 	g_free(message);
 #endif
-
+	g_free(name);
+	g_free(strtime);
+	g_free(user);
 	hon->whois_conv = NULL;
 }
 

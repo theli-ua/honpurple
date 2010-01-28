@@ -15,7 +15,7 @@
 #define	 HON_SC_LOOKING_FOR_CLAN 	 0x18
 #define	 HON_SC_PM 	 0x1C
 #define	 HON_SC_PM_FAILED 	 0x1D
-#define	 HON_SC_CHANNEL_LIST 	 0x1F
+#define	 HON_SC_CHANNEL_LIST 	 0x1C02
 #define	 HON_SC_WHISPER_BUDDIES 	 0x20
 #define	 HON_SC_MAX_CHANNELS 	 0x21
 #define	 HON_SC_USER_INFO_NO_EXIST 	 0x2B
@@ -45,7 +45,7 @@
 #define	 HON_SC_CHANNEL_EMOTE 	 0x65
 
 /* client -> server */
-#define	 HON_CS_PONG 	 0x02
+#define	 HON_CS_PONG 	 0x2A01
 #define	 HON_CS_CHANNEL_MSG 	 0x03
 #define	 HON_CS_WHISPER 	 0x08
 #define	 HON_CS_AUTH_INFO 	 0x0C00
@@ -55,7 +55,7 @@
 #define	 HON_CS_CLAN_MESSAGE 	 0x13
 #define	 HON_CS_PM 	 0x1C
 #define	 HON_CS_JOIN_CHANNEL 	 0x1E
-#define	 HON_CS_CHANNEL_LIST 	 0x1F
+#define	 HON_CS_CHANNEL_LIST 	 0x0C01
 #define	 HON_CS_WHISPER_BUDDIES 	 0x20
 #define	 HON_CS_LEAVE_CHANNEL 	 0x22
 #define	 HON_CS_USER_INFO 	 0x2A

@@ -444,7 +444,7 @@ static int honprpl_read_recv(PurpleConnection *gc, int sock) {
 	int packet_length = 1,len = 0;
 	hon_account* hon = gc->proto_data;
 	gchar* buff = NULL;
-
+#if 0
 	if (hon->got_length == 0)
 	{
 		len += read(sock,&packet_length,4);
@@ -473,6 +473,12 @@ static int honprpl_read_recv(PurpleConnection *gc, int sock) {
 
 	//if (recv(sock, &packet_length,sizeof(&packet_length) ,MSG_PEEK) > 0)
 	//	len += honprpl_read_recv(gc,sock);
+#else
+	//buff = malloc(1024);
+	//len = recv(sock,buff,2,0);
+	return hon_parse_packet(gc,sock);
+	//free(buff);
+#endif
 	return len;
 }
 

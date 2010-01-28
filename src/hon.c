@@ -4,6 +4,11 @@
 #include <stdarg.h>
 #include <notify.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <libc_interface.h>
+#undef vsnprintf /* conflicts with msvc definition and not needed */
+#endif
 /*
 	Macroses and utilities
  */
@@ -11,7 +16,7 @@ static int do_write(int fd, void* buffer, int len){
 	return write(fd,buffer,len);
 }
 
-static gboolean hon_send_packet(PurpleConnection* gc,guint8 packet_id,const gchar* paramstring , ...){
+static gboolean hon_send_packet(PurpleConnection* gc,guint16 packet_id,const gchar* paramstring , ...){
 	gboolean res;
 	guint32 intparam;
 	guint8 byteparam;
@@ -19,7 +24,7 @@ static gboolean hon_send_packet(PurpleConnection* gc,guint8 packet_id,const gcha
 	va_list marker;
 	hon_account* hon = gc->proto_data;
 	GByteArray* buffer = g_byte_array_new();
-	buffer = g_byte_array_append(buffer,&packet_id,1);
+	buffer = g_byte_array_append(buffer,&packet_id,2);
 	va_start( marker, paramstring );
 
 	while (paramstring != 0x00 && *paramstring != 0x00)
@@ -56,11 +61,39 @@ const char *hon_normalize_nick(const PurpleAccount *acct,
 	}
 	return input;
 }
+guint16 read_guint16(int fd){
+	int aaa = 0;
+	guint16 res = 0;
+	recv(fd,&res,2,MSG_WAITALL);
+	return res;
+}
+gchar read_byte(int fd){
+	gchar res;
+	recv(fd,&res,1,MSG_WAITALL);
+	return res;
+}
+guint32 read_guint32(int fd){
+	guint32 res;
+	recv(fd,&res,4,MSG_WAITALL);
+	return res;
+}
+gchar* read_string(int fd){
+	char c;
+	GString* str = g_string_new(0);
+	recv(fd,&c,1,MSG_WAITALL);
+	while (c != 0)
+	{
+		str = g_string_append_c(str,c);
+		recv(fd,&c,1,MSG_WAITALL);
+	}
+	return g_string_free(str,FALSE);
+}
+
 
 /* Packet parsers */
-void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length){
-	guint8 packet_id = *buffer++;
-	GString* hexdump;
+int hon_parse_packet(PurpleConnection *gc, int sock){
+	gchar* buffer;
+ 	guint16 packet_id = read_guint16(sock);
 #if 0
 	hexdump = g_string_new(NULL);
 	hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
@@ -69,7 +102,9 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 #endif
 	switch (packet_id)
 	{
-	case HON_SC_AUTH_ACCEPTED/*0x00*/: /* logged on ! */
+	case 0:
+		return 0;
+	case HON_SC_AUTH_ACCEPTED/*0x1C00*/: /* logged on ! */
 		purple_connection_update_progress(gc, _("Connected"),
 			3,   /* which connection step this is */
 			4);  /* total number of steps */
@@ -80,133 +115,135 @@ void hon_parse_packet(PurpleConnection *gc, gchar* buffer, guint32 packet_length
 		purple_debug_info(HON_DEBUG_PREFIX, "server ping, sending pong\n");
 		break;
 	case HON_SC_CHANNEL_MSG/*0x03*/:
-		hon_parse_chat_message(gc,buffer);
+		hon_parse_chat_message(gc,sock);
 		break;
 	case HON_SC_CHANGED_CHANNEL/*0x04*/:
-#ifdef _DEBUG
-		hexdump = g_string_new(NULL);
-		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
-		purple_debug_info(HON_DEBUG_PREFIX, "channel join packet:\nid:%X(%d)\nlength:%d\ndata:\n%s\n",packet_id,packet_id,packet_length, hexdump->str);
-		g_string_free(hexdump,TRUE);
-#endif
-		hon_parse_chat_entering(gc,buffer);
+		hon_parse_chat_entering(gc,sock);
 		break;
 	case HON_SC_JOINED_CHANNEL/*0x05*/:
-		hon_parse_chat_join(gc,buffer);
+		hon_parse_chat_join(gc,sock);
 		break;
 	case HON_SC_LEFT_CHANNEL/*0x06*/:
-		hon_parse_chat_leave(gc,buffer);
+		hon_parse_chat_leave(gc,sock);
 		break;
 	case HON_SC_WHISPER/*0x08*/:
-		hon_parse_pm_whisper(gc,buffer,TRUE);
+		hon_parse_pm_whisper(gc,sock,TRUE);
 		break;
 	case HON_SC_WHISPER_FAILED/*0x09*/:
-		hon_parse_whisper_failed(gc,buffer);
+		hon_parse_whisper_failed(gc,sock);
 		break;
 	case HON_SC_INITIAL_STATUS/*0x0B*/:
-		hon_parse_initiall_statuses(gc,buffer);
+		hon_parse_initiall_statuses(gc,sock);
 		break;
 	case HON_SC_UPDATE_STATUS/*0x0C*/:
-#ifdef _DEBUG
-		hexdump = g_string_new(NULL);
-		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
-		purple_debug_info(HON_DEBUG_PREFIX, "user status packet:\nid:%X(%d)\nlength:%d\ndata:\n%s\n",packet_id,packet_id,packet_length, hexdump->str);
-		g_string_free(hexdump,TRUE);
-#endif
-		hon_parse_user_status(gc,buffer);
+		hon_parse_user_status(gc,sock);
 		break;
 	case HON_SC_NOTIFICATION/*0x12*/:
-		hon_parse_notification(gc,buffer);
+		hon_parse_notification(gc,sock);
 		break;
 	case HON_SC_CLAN_MESSAGE/*0x13*/:
-		hon_parse_clan_message(gc,buffer);
+		hon_parse_clan_message(gc,sock);
 		break;
 	case HON_SC_PM/*0x1C*/:
-		hon_parse_pm_whisper(gc,buffer,FALSE);
+		hon_parse_pm_whisper(gc,sock,FALSE);
 		break;
 	case HON_SC_PM_FAILED/*0x1D*/:
-		hon_parse_pm_failed(gc,buffer);
+		hon_parse_pm_failed(gc,sock);
 		break;
 	case HON_SC_CHANNEL_LIST/*0x1F*/:
-		hon_parse_channel_list(gc,buffer);
+		hon_parse_channel_list(gc,sock);
 		break;
 	case HON_SC_WHISPER_BUDDIES/*0x20*/:
-		hon_parse_pm_whisper(gc,buffer,TRUE);
+		hon_parse_pm_whisper(gc,sock,TRUE);
 		break;
 	case HON_SC_MAX_CHANNELS/*0x21*/:
-		hon_parse_max_channels(gc,buffer);
+		hon_parse_max_channels(gc,sock);
 		break;
 	case HON_SC_USER_INFO_NO_EXIST/*0x2b*/:
 	case HON_SC_USER_INFO_OFFLINE/*0x2c*/:
 	case HON_SC_USER_INFO_ONLINE/*0x2d*/:
 	case HON_SC_USER_INFO_IN_GAME/*0x2e*/:
-		hon_parse_userinfo(gc,buffer,packet_id);
+		hon_parse_userinfo(gc,sock,packet_id);
 		break;
 	case HON_SC_UPDATE_TOPIC/*0x30*/:
-		hon_parse_chat_topic(gc,buffer);
+		hon_parse_chat_topic(gc,sock);
 		break;
 	case HON_SC_CHANNEL_KICK/*0x31*/:
-		hon_parse_channel_kick(gc,buffer);
+		hon_parse_channel_kick(gc,sock);
 		break;
 	case HON_SC_CHANNEL_BAN/*0x32*/:
 	case HON_SC_CHANNEL_UNBAN/*0x33*/:
-		hon_parse_channel_ban_unban(gc,buffer,packet_id);
+		hon_parse_channel_ban_unban(gc,sock,packet_id);
 		break;
 	case HON_SC_CHANNEL_BANNED/*0x34*/:
-		hon_parse_channel_banned(gc,buffer);
+		hon_parse_channel_banned(gc,sock);
 		break;
 	case HON_SC_CHANNEL_SILENCED/*0x35*/:
-		hon_parse_channel_silenced(gc,buffer);
+		hon_parse_channel_silenced(gc,sock);
 		break;
 	case HON_SC_CHANNEL_SILENCE_LIFTED/*0x36*/:
-		hon_parse_channel_silence_lifted(gc,buffer);
+		hon_parse_channel_silence_lifted(gc,sock);
 		break;
 	case HON_SC_CHANNEL_SILENCE_PLACED/*0x37*/:
-		hon_parse_channel_silence_placed(gc,buffer);
+		hon_parse_channel_silence_placed(gc,sock);
 		break;
 	case HON_SC_CHANNEL_PROMOTE/*0x3A*/:
 	case HON_SC_CHANNEL_DEMOTE/*0x3A*/:
-		hon_parse_channel_promote_demote(gc,buffer,packet_id);
+		hon_parse_channel_promote_demote(gc,sock,packet_id);
 		break;
 	case HON_SC_MESSAGE_ALL/*0x39*/:
-		hon_parse_global_notification(gc,buffer);
+		hon_parse_global_notification(gc,sock);
 		break;
 	case HON_SC_CHANNEL_AUTH_ENABLE:
 	case HON_SC_CHANNEL_AUTH_DISABLE:
-		hon_parse_channel_auth_enable_disable(gc,buffer,packet_id);
+		hon_parse_channel_auth_enable_disable(gc,sock,packet_id);
 		break;
 	case HON_SC_CHANNEL_AUTH_ADD:
 	case HON_SC_CHANNEL_AUTH_DELETE:
 	case HON_SC_CHANNEL_ADD_AUTH_FAIL:
 	case HON_SC_CHANNEL_DEL_AUTH_FAIL:
-		hon_parse_channel_auth_add_delete(gc,buffer,packet_id);
+		hon_parse_channel_auth_add_delete(gc,sock,packet_id);
 		break;
 	case HON_SC_CHANNEL_AUTH_LIST:
-		hon_parse_channel_auth_list(gc,buffer);
+		hon_parse_channel_auth_list(gc,sock);
 		break;
 	case HON_SC_CHANNEL_PASSWORD_CHANGED/*0x43*/:
-		hon_parse_channel_password_changed(gc,buffer);
+		hon_parse_channel_password_changed(gc,sock);
 		break;
 	case HON_SC_JOIN_CHANNEL_PASSWORD/*0x46*/:
-		hon_parse_join_channel_password(gc,buffer);
+		hon_parse_join_channel_password(gc,sock);
 		break;
 	case HON_SC_CHANNEL_EMOTE/*0x65*/:
-		hon_parse_emote(gc,buffer);
+		hon_parse_emote(gc,sock);
+		break;
+	case 0x18:
+		read_string(sock);
+		break;
+	case 0x68:
+		read_guint32(sock);
 		break;
 	default:
+		//try to skip this
+		buffer = g_malloc0(1024);
+		packet_id = recv(sock,buffer,1024,0);
+		g_free(buffer);
+		/*
 		hexdump = g_string_new(NULL);
 		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
 		purple_debug_info(HON_DEBUG_PREFIX, "unknown packet:\nid:%X(%d)\nlength:%d\ndata:\n%s\n",packet_id,packet_id,packet_length, hexdump->str);
 		g_string_free(hexdump,TRUE);
+		*/
+
 		break;
 	}
+	return 1;
 }
-void hon_parse_channel_auth_list(PurpleConnection *gc,gchar* buffer)
+void hon_parse_channel_auth_list(PurpleConnection *gc,int fd)
 {
 	hon_account* hon = gc->proto_data;
 	PurpleConversation* chat;
-	guint32 count,chatid = read_guint32(buffer);
-	count = read_guint32(buffer);
+	guint32 count,chatid = read_guint32(fd);
+	count = read_guint32(fd);
 	chat = purple_find_chat(gc,chatid);
 	if (!chat)
 		return;
@@ -223,20 +260,22 @@ void hon_parse_channel_auth_list(PurpleConnection *gc,gchar* buffer)
 	{
 		while (count--)
 		{
+			gchar* buffer = read_string(fd);
 			purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", 
 				buffer,
 				PURPLE_MESSAGE_SYSTEM, time(NULL));
-			buffer += strlen(buffer) + 1;
+			g_free(buffer);
 		}
 	}
 	
 }
-void hon_parse_channel_auth_add_delete(PurpleConnection *gc,gchar* buffer,guint8 packet_id)
+void hon_parse_channel_auth_add_delete(PurpleConnection *gc,int fd,guint16 packet_id)
 {
 	hon_account* hon = gc->proto_data;
 	PurpleConversation* chat;
 	gchar* msg_template,*msg;
-	guint32 chatid = read_guint32(buffer);
+	guint32 chatid = read_guint32(fd);
+	gchar* buffer = read_string(fd);
 	chat = purple_find_chat(gc,chatid);
 	if (!chat)
 		return;
@@ -252,12 +291,13 @@ void hon_parse_channel_auth_add_delete(PurpleConnection *gc,gchar* buffer,guint8
 	purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "",msg,
 		PURPLE_MESSAGE_SYSTEM, time(NULL));
 	g_free(msg);
+	g_free(buffer);
 }
-void hon_parse_channel_auth_enable_disable(PurpleConnection *gc,gchar* buffer,guint8 packet_id)
+void hon_parse_channel_auth_enable_disable(PurpleConnection *gc,int fd,guint16 packet_id)
 {
 	hon_account* hon = gc->proto_data;
 	PurpleConversation* chat;
-	guint32 chatid = read_guint32(buffer);
+	guint32 chatid = read_guint32(fd);
 	chat = purple_find_chat(gc,chatid);
 	if (!chat)
 		return;
@@ -270,41 +310,48 @@ void hon_parse_channel_auth_enable_disable(PurpleConnection *gc,gchar* buffer,gu
 		_("Authorization has been disabled for this channel, all users can now join."),
 		PURPLE_MESSAGE_SYSTEM, time(NULL));
 }
-void hon_parse_channel_silence_placed(PurpleConnection* gc,gchar* buffer){
+void hon_parse_channel_silence_placed(PurpleConnection* gc,int fd){
 	PurpleConversation *convo;
 	hon_account* hon = gc->proto_data;
 	gchar * msg , *silencer, *silenced,*chatname;
 	guint32 duration;
-	chatname = read_string(buffer);
-	silencer = read_string(buffer);
-	silenced = read_string(buffer);
-	duration = read_guint32(buffer);
+	chatname = read_string(fd);
+	silencer = read_string(fd);
+	silenced = read_string(fd);
+	duration = read_guint32(fd);
 	convo = purple_find_conversation_with_account(PURPLE_CONV_TYPE_CHAT,chatname,gc->account);
 	if (!convo) {
-		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got a silenced message for %s, which doesn't exist\n", buffer);
+		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got a silenced message for %s, which doesn't exist\n", chatname);
 		return;
 	}
 	msg = g_strdup_printf(_("%s has been silenced by %s for %d ms."),silenced,silencer,duration);
 	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
 	g_free(msg);
+	g_free(chatname);
+	g_free(silencer);
+	g_free(silenced);
 }
-void hon_parse_channel_silence_lifted(PurpleConnection* gc,gchar* buffer){
+void hon_parse_channel_silence_lifted(PurpleConnection* gc,int fd){
 	PurpleConversation *convo;
 	hon_account* hon = gc->proto_data;
 	gchar * msg;
+	gchar* buffer = read_string(fd);
 	convo = purple_find_conversation_with_account(PURPLE_CONV_TYPE_CHAT,buffer,gc->account);
 	if (!convo) {
 		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got an unsilenced message for %s, which doesn't exist\n", buffer);
-		return;
 	}
-	msg = g_strdup_printf(_("Your silence has been lifted in the channel '%s'."),buffer);
-	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
-	g_free(msg);
+	else
+	{
+		msg = g_strdup_printf(_("Your silence has been lifted in the channel '%s'."),buffer);
+		purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+		g_free(msg);
+	}
+	g_free(buffer);
 }
-void hon_parse_channel_silenced(PurpleConnection* gc,gchar* buffer){
+void hon_parse_channel_silenced(PurpleConnection* gc,int fd){
 	PurpleConversation *convo;
 	hon_account* hon = gc->proto_data;
-	guint32 chan_id = read_guint32(buffer);
+	guint32 chan_id = read_guint32(fd);
 	convo = purple_find_chat(gc,chan_id);
 	if (!convo) {
 		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got a silenced message for %d, which doesn't exist\n", chan_id);
@@ -312,29 +359,33 @@ void hon_parse_channel_silenced(PurpleConnection* gc,gchar* buffer){
 	}
 	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", _("You are silenced in this channel and cannot talk."), PURPLE_MESSAGE_SYSTEM, time(NULL));
 }
-void hon_parse_channel_password_changed(PurpleConnection* gc,gchar* buffer){
+void hon_parse_channel_password_changed(PurpleConnection* gc,int fd){
 	PurpleConversation *convo;
 	hon_account* hon = gc->proto_data;
 	gchar * msg;
-	guint32 chan_id = read_guint32(buffer);
+	guint32 chan_id = read_guint32(fd);
+	gchar* buffer = read_string(fd);
 	convo = purple_find_chat(gc,chan_id);
 	if (!convo) {
 		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got a message for %d, which doesn't exist\n", chan_id);
-		return;
 	}
-	msg = g_strdup_printf(_("The password for this channel has been changed by %s."),buffer);
-	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
-	g_free(msg);
+	else
+	{
+		msg = g_strdup_printf(_("The password for this channel has been changed by %s."),buffer);
+		purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+		g_free(msg);
+	}
+	g_free(buffer);
 }
-void hon_parse_channel_ban_unban(PurpleConnection *gc,gchar* buffer,guint8 packet_id)
+void hon_parse_channel_ban_unban(PurpleConnection *gc,int fd,guint16 packet_id)
 {
 	hon_account* hon = gc->proto_data;
 	guint32 chatid,kickerid;
 	gchar* kicked,*kicker,*msg,*action;
 	PurpleConversation* chat;
-	chatid = read_guint32(buffer);
-	kickerid = read_guint32(buffer);
-	kicked = buffer;
+	chatid = read_guint32(fd);
+	kickerid = read_guint32(fd);
+	kicked = read_string(fd);
 	chat = purple_find_chat(gc,chatid);
 	if (!chat)
 		return;
@@ -355,25 +406,29 @@ void hon_parse_channel_ban_unban(PurpleConnection *gc,gchar* buffer,guint8 packe
 	msg = g_strdup_printf(_("%s was %s from the channel by %s."),kicked,action,kicker);
 	purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
 	g_free(msg);
+	g_free(kicked);
 }
-void hon_parse_join_channel_password(PurpleConnection *gc,gchar* buffer){
+void hon_parse_join_channel_password(PurpleConnection *gc,int fd){
+	gchar* buffer = read_string(fd);
 	gchar* msg = g_strdup_printf(_("The channel '%s' requires a password."),buffer);
 	purple_notify_error(NULL,_("Banned"),msg,NULL);
 	g_free(msg);
+	g_free(buffer);
 }
-void hon_parse_channel_banned(PurpleConnection *gc,gchar* buffer){
+void hon_parse_channel_banned(PurpleConnection *gc,int fd){
+	gchar* buffer = read_string(fd);
 	gchar* msg = g_strdup_printf(_("You are banned from the channel '%s'"),buffer);
 	purple_notify_error(NULL,_("Banned"),msg,NULL);
 	g_free(msg);
 }
-void hon_parse_channel_kick(PurpleConnection *gc,gchar* buffer){
+void hon_parse_channel_kick(PurpleConnection *gc,int fd){
 	hon_account* hon = gc->proto_data;
 	guint32 chatid,kickerid,kickedid;
 	gchar* kicked,*kicker,*msg;
 	PurpleConversation* chat;
-	chatid = read_guint32(buffer);
-	kickerid = read_guint32(buffer);
-	kickedid = read_guint32(buffer);
+	chatid = read_guint32(fd);
+	kickerid = read_guint32(fd);
+	kickedid = read_guint32(fd);
 	chat = purple_find_chat(gc,chatid);
 	if (!chat)
 		return;
@@ -400,7 +455,7 @@ void hon_parse_channel_kick(PurpleConnection *gc,gchar* buffer){
 
 	g_free(msg);
 }
-void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint8 packet_id){
+void hon_parse_channel_promote_demote(PurpleConnection *gc,int fd,guint16 packet_id){
 	hon_account* hon = gc->proto_data;
 	guint32 chatid,kickerid,kickedid;
 	gchar* kicked,*kicker,*msg;
@@ -408,9 +463,9 @@ void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint8 
 	const char* action,*rank;
 	PurpleConvChatBuddyFlags chatbuddy_flags;
 
-	chatid = read_guint32(buffer);
-	kickedid = read_guint32(buffer);
-	kickerid = read_guint32(buffer);
+	chatid = read_guint32(fd);
+	kickedid = read_guint32(fd);
+	kickerid = read_guint32(fd);
 	chat = purple_find_chat(gc,chatid);
 	if (!chat)
 		return;
@@ -488,27 +543,31 @@ void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint8 
 	g_free(msg);
 }
 
-void hon_parse_pm_failed(PurpleConnection *gc,gchar* buffer){
+void hon_parse_pm_failed(PurpleConnection *gc,int fd){
 	purple_notify_error(NULL,_("Message failed"),_("The user you tried to chat with is not online"),
 		NULL);
 }
-void hon_parse_whisper_failed(PurpleConnection *gc,gchar* buffer){
+void hon_parse_whisper_failed(PurpleConnection *gc,int fd){
 	purple_notify_error(NULL,_("Whisper failed"),_("The user you tried to whisper is not online"),
 		NULL);
 }
-void hon_parse_max_channels(PurpleConnection *gc,gchar* buffer){
+void hon_parse_max_channels(PurpleConnection *gc,int fd){
 	purple_notify_error(NULL,_("Channel limit reached"),_("You have reached an open channels limit."),
 		_("To join other channel close some already opened"));
 }
-void hon_parse_global_notification(PurpleConnection *gc,gchar* buffer){
+void hon_parse_global_notification(PurpleConnection *gc,int fd){
 	hon_account* hon = gc->proto_data;
-	gchar* username = read_string(buffer);
+	gchar* username = read_string(fd);
+	gchar* buffer = read_string(fd);
 	purple_notify_warning(NULL,username,buffer,NULL);
+	g_free(buffer);
+	g_free(username);
 }
-void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
+void hon_parse_notification(PurpleConnection *gc,int fd){
 	hon_account* hon = gc->proto_data;
-	guint8 notification_type = *buffer++;
+	guint8 notification_type = read_byte(fd);
 	gchar* title = NULL;
+	gchar* buffer = read_string(fd);
 	switch (notification_type)
 	{
 	case HON_NOTIFICATION_ADDED_AS_BUDDY:
@@ -528,37 +587,40 @@ void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
 		break;
 	}
 	purple_notify_info(NULL,title,buffer,NULL);
+	g_free(buffer);
 	g_free(title);
 }
-void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
+void hon_parse_initiall_statuses(PurpleConnection *gc,int fd){
 	guint32 status,flags;
 #ifdef MINBIF
 	gchar* raw_gamename;
 #endif
 	hon_account* hon;
-	guint32 id,count = read_guint32(buffer);
+	guint32 id,count = read_guint32(fd);
 	hon = gc->proto_data;
 	purple_debug_info(HON_DEBUG_PREFIX, "parsing status for %d buddies\n",count);
 	while (count-- > 0)
 	{
 		gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S;
 
-		id = read_guint32(buffer);
-		status = *buffer++;
-		flags = *buffer++;
+		id = read_guint32(fd);
+		status = read_byte(fd);
+		flags = read_byte(fd);
 		nick = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id));
 		if (status == HON_STATUS_INLOBBY || status == HON_STATUS_INGAME)
 		{
-			server = read_string(buffer);
+			server = read_string(fd);
 			status_id = HON_STATUS_INGAME_S;
 		}
 		if (status == HON_STATUS_INGAME)
 		{
+			gchar* buffer = read_string(fd);
 #ifdef MINBIF
 			raw_gamename = buffer;
 #endif
+
 			gamename = hon_strip(buffer,TRUE);
-			read_string(buffer);
+			g_free(buffer);
 		}
 		if(!status)
 			status_id = HON_STATUS_OFFLINE_S;
@@ -568,6 +630,7 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 			HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
 			server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
 		g_free(gamename);
+		g_free(server);
 #ifdef MINBIF
 		if (status == HON_STATUS_INGAME)
 			status_id = g_strdup_printf("%s %s %d 0 %s",MINBIF_STATUS,
@@ -580,9 +643,9 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 #endif
 	}
 }
-void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
+void hon_parse_user_status(PurpleConnection *gc,int fd){
 	gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S;
-	gchar* clan; // or channel?
+	gchar* clan = NULL; // or channel?
 	guint32 clanid;
 	hon_account* hon = gc->proto_data;
 	guint32 status;
@@ -592,16 +655,16 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 	gchar* raw_gamename;
 #endif
 
-	guint32 id = read_guint32(buffer);
-	status = *buffer++;
-	flags = *buffer++;
+	guint32 id = read_guint32(fd);
+	status = read_byte(fd);
+	flags = read_byte(fd);
 	nick = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id));
 	/* TODO: figure this out */
-	clanid = read_guint32(buffer);
-	clan = read_string(buffer); // huh ?
+	clanid = read_guint32(fd);
+	clan = read_string(fd); // huh ?
 	if (status == HON_STATUS_INLOBBY || status == HON_STATUS_INGAME)
 	{
-		server = read_string(buffer);
+		server = read_string(fd);
 		status_id = HON_STATUS_INGAME_S;
 	}
 	if (status == HON_STATUS_INGAME)
@@ -609,9 +672,11 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 #ifdef MINBIF
 		raw_gamename = buffer;
 #endif
-		gamename = read_string(buffer);
-		gamename = hon_strip(gamename,TRUE);
-		matchid = read_guint32(buffer);
+
+		gchar* buffer = read_string(fd);
+		gamename = hon_strip(buffer,TRUE);
+		matchid = read_guint32(fd);
+		g_free(buffer);
 	}
 	if(!status)
 		status_id = HON_STATUS_OFFLINE_S;
@@ -624,7 +689,8 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 		matchid > 0 ? HON_MATCHID_ATTR : NULL, matchid,
 		NULL);
 	g_free(gamename);
-	
+	g_free(clan);
+	g_free(server);
 #ifdef MINBIF
 	if (status == HON_STATUS_INGAME)
 		status_id = g_strdup_printf("%s %s %d %d %s",MINBIF_STATUS,
@@ -638,11 +704,15 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 }
 
 
-void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint8 is_whisper)
+void hon_parse_pm_whisper(PurpleConnection *gc,int fd,guint16 is_whisper)
 {
 	hon_account* hon = gc->proto_data;
 	PurpleMessageFlags receive_flags;
-	gchar* message,*from_username = read_string(buffer);
+	gchar* message,*from_username; 
+	gchar* buffer;
+	gchar* tmp = read_string(fd);
+	buffer = read_string(fd);
+	from_username = tmp;
 	message = hon2html(buffer);
 	if (from_username[0] == '[')
 	{
@@ -656,10 +726,12 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint8 is_whisper)
 		receive_flags = PURPLE_MESSAGE_RECV;
 	serv_got_im(gc, from_username, message, receive_flags, time(NULL));
 	g_free(message);
+	g_free(tmp);
+	g_free(buffer);
 }
-void hon_parse_channel_list(PurpleConnection *gc,gchar* buffer){
+void hon_parse_channel_list(PurpleConnection *gc,int fd){
 	hon_account* hon = gc->proto_data;
-	guint32 count = read_guint32(buffer);
+	guint32 count = read_guint32(fd);
 	if (!hon->roomlist)
 		return;
 	while (count--)
@@ -667,10 +739,10 @@ void hon_parse_channel_list(PurpleConnection *gc,gchar* buffer){
 		PurpleRoomlistRoom *room;
 		gchar* name,*colorname;
 		guint32 id,participants;
-		id = read_guint32(buffer);
-		name = read_string(buffer);
+		id = read_guint32(fd);
+		name = read_string(fd);
 		colorname = hon_strip(name,FALSE);
-		participants = read_guint32(buffer);
+		participants = read_guint32(fd);
 
 		room = purple_roomlist_room_new(PURPLE_ROOMLIST_ROOMTYPE_ROOM, colorname, NULL);
 
@@ -679,13 +751,14 @@ void hon_parse_channel_list(PurpleConnection *gc,gchar* buffer){
 		purple_roomlist_room_add_field(hon->roomlist, room, GINT_TO_POINTER(participants));
 		purple_roomlist_room_add(hon->roomlist, room);
 		g_free(colorname);
+		g_free(name);
 	}
 	purple_roomlist_set_in_progress(hon->roomlist, FALSE);
 	purple_roomlist_unref(hon->roomlist);
 	hon->roomlist = NULL;
 
 }
-void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
+void hon_parse_chat_entering(PurpleConnection *gc,int fd)
 {
 	PurpleConversation *convo;
 	hon_account* hon = gc->proto_data;
@@ -695,38 +768,42 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 	gchar* topic,*topic_raw;
 	const gchar* extra;
 	GHashTable* ops = NULL;
+	gchar* buf;
 
-	gchar* room = buffer;
-	buffer += strlen(buffer) + 1;
-	chat_id = read_guint32(buffer);
-	unknown = *buffer++;
-	topic_raw = read_string(buffer);
-	topic = hon2html(topic_raw);
-	topic_raw = hon_strip(topic_raw,FALSE);
-	op_count = read_guint32(buffer);
+	gchar* room = read_string(fd);
+	chat_id = read_guint32(fd);
+	unknown = read_byte(fd);
+	buf = read_string(fd);
+	topic = hon2html(buf);
+	topic_raw = hon_strip(buf,FALSE);
+	g_free(buf);
+	op_count = read_guint32(fd);
 	if (op_count != 0)
 	{
 		guint32 op_id,op_type;
 		ops = g_hash_table_new(g_direct_hash,g_direct_equal);
 		while (op_count--)
 		{
-			op_id = read_guint32(buffer);
-			op_type = *buffer++;
+			op_id = read_guint32(fd);
+			op_type = read_byte(fd);
 			g_hash_table_insert(ops,GINT_TO_POINTER(op_id),GINT_TO_POINTER(op_type));
 		}
 	}
-	count = read_guint32(buffer);
+	count = read_guint32(fd);
 	convo = serv_got_joined_chat(gc, chat_id, room);
 	purple_conv_chat_set_topic(PURPLE_CONV_CHAT(convo), NULL, topic_raw);
 
+	g_free(room);
 	while (count--)
 	{
 		guint32 account_id;
 		guint8 status;
-		const gchar* nickname = read_string(buffer);
-		account_id = read_guint32(buffer);
-		status = *buffer++;
-		flags = *buffer++;
+		const gchar* nickname;
+		buf = read_string(fd);
+		nickname = buf;
+		account_id = read_guint32(fd);
+		status = read_byte(fd);
+		flags = read_byte(fd);
 		purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d\n",
 			nickname,account_id,status,flags);
 
@@ -750,6 +827,7 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 		{
 			g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(nickname));
 		}
+		g_free(buf);
 
 	}
 	flags = 0;
@@ -775,51 +853,59 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 	purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), hon->self.nickname, NULL,purple_flags , FALSE);
 }
 
-void hon_parse_emote(PurpleConnection *gc,gchar* buffer){
+void hon_parse_emote(PurpleConnection *gc,int fd){
 	hon_account *hon = gc->proto_data;
 	guint32 account_id;
 	guint32 chan_id;
 	gchar* msg;
 	PurpleConversation* chat;
 	gchar* sender;
-	account_id = read_guint32(buffer);
-	chan_id = read_guint32(buffer);
+	gchar* buffer;
+	account_id = read_guint32(fd);
+	chan_id = read_guint32(fd);
+	buffer = read_string(fd);
 	msg = hon2html(buffer);
+	g_free(buffer);
 	chat = purple_find_chat(gc,chan_id);
 	sender = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id));
 	serv_got_chat_in(gc,chan_id,sender ,PURPLE_MESSAGE_RECV,msg,time(NULL));
 	g_free(msg);
 }
-void hon_parse_chat_message(PurpleConnection *gc,gchar* buffer){
+void hon_parse_chat_message(PurpleConnection *gc,int fd){
 	hon_account *hon = gc->proto_data;
 	guint32 account_id;
 	guint32 chan_id;
 	gchar* msg;
 	gchar* sender;
+	gchar* buffer;
 
-	account_id = read_guint32(buffer);
-	chan_id = read_guint32(buffer);
+	account_id = read_guint32(fd);
+	chan_id = read_guint32(fd);
+	buffer = read_string(fd);
 	msg = hon2html(buffer);
+	g_free(buffer);
 	sender = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id));
 	serv_got_chat_in(gc,chan_id,sender? sender : "unknown user" ,PURPLE_MESSAGE_RECV,msg,time(NULL));
 	g_free(msg);
 }
-void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
+void hon_parse_chat_join(PurpleConnection *gc,int fd){
 	hon_account* hon = gc->proto_data;
 	guint32 account_id;
 	guint32 chan_id,purple_flags = PURPLE_CBFLAGS_NONE;
 	PurpleConversation* conv;
 	guint8 status,flags;
 	const gchar* extra;
-	const gchar* nick = read_string(buffer);
-	account_id = read_guint32(buffer);
-	chan_id = read_guint32(buffer);
+	const gchar* nick;
+	gchar* buf = read_string(fd);
+	nick = buf;
+	account_id = read_guint32(fd);
+	chan_id = read_guint32(fd);
 	conv = purple_find_chat(gc,chan_id);
 
 	extra = nick;
 	nick = hon_normalize_nick(gc->account,nick);
-	status = *buffer++;
-	flags = *buffer++;
+	status = read_byte(fd);
+	flags = read_byte(fd);
 
 	if (flags == HON_FLAGS_CHAT_ADMINISTRATOR)
 		purple_flags = PURPLE_CBFLAGS_FOUNDER;
@@ -837,15 +923,16 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 	{
 		g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(nick));
 	}
+	g_free(buf);
 }
-void hon_parse_chat_leave(PurpleConnection *gc,gchar* buffer){
+void hon_parse_chat_leave(PurpleConnection *gc,int fd){
 	hon_account* hon = gc->proto_data;
 	guint32 account_id;
 	guint32 chan_id;
 	gchar* nick;
 	PurpleConversation* conv;
-	account_id = read_guint32(buffer);
-	chan_id = read_guint32(buffer);
+	account_id = read_guint32(fd);
+	chan_id = read_guint32(fd);
 	nick = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id));
 	conv = purple_find_chat(gc,chan_id);
 	if (conv && nick)
@@ -855,14 +942,19 @@ void hon_parse_chat_leave(PurpleConnection *gc,gchar* buffer){
 	if (account_id == hon->self.account_id)
 		serv_got_chat_left(gc, chan_id);
 }
-void hon_parse_clan_message(PurpleConnection *gc,gchar* buffer){
+void hon_parse_clan_message(PurpleConnection *gc,int fd){
 	hon_account* hon = gc->proto_data;
 	guint32 buddy_id;
-	gchar* message,*user;
+	gchar* message,*user,*buffer;
 	PurpleConversation* clanConv;
 	GString* clan_chat_name;
-	buddy_id = read_guint32(buffer);
+
+	buddy_id = read_guint32(fd);
+
+	buffer = read_string(fd);
 	message = hon2html(buffer);
+	g_free(buffer);
+	
 	clan_chat_name = g_string_new("Clan ");
 	clan_chat_name = g_string_append(clan_chat_name,hon->self.clan_name);
 	clanConv = purple_find_conversation_with_account(PURPLE_CONV_TYPE_CHAT,clan_chat_name->str,gc->account);
@@ -874,34 +966,40 @@ void hon_parse_clan_message(PurpleConnection *gc,gchar* buffer){
 	}
 	g_free(message);
 }
-void hon_parse_chat_topic(PurpleConnection* gc,gchar* buffer){
+void hon_parse_chat_topic(PurpleConnection* gc,int fd){
 	PurpleConversation *convo;
 	hon_account* hon = gc->proto_data;
 	gchar * topic_raw, * topic_html, * msg;
-	guint32 chan_id = read_guint32(buffer);
+	guint32 chan_id = read_guint32(fd);
+	gchar* buffer = read_string(fd);
 
 	convo = purple_find_chat(gc,chan_id);
 	if (!convo) {
 		purple_debug(PURPLE_DEBUG_ERROR, HON_DEBUG_PREFIX, "Got a topic for %d, which doesn't exist\n", chan_id);
-		return;
 	}
-	topic_raw = hon_strip(buffer,FALSE);
-	topic_html = hon2html(buffer);
-	msg = g_strdup_printf(_("Topic changed to '%s'."), topic_html);
+	else
+	{
+		topic_raw = hon_strip(buffer,FALSE);
+		topic_html = hon2html(buffer);
+		msg = g_strdup_printf(_("Topic changed to '%s'."), topic_html);
 
-	purple_conv_chat_set_topic(PURPLE_CONV_CHAT(convo), NULL, topic_raw);
-	purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+		purple_conv_chat_set_topic(PURPLE_CONV_CHAT(convo), NULL, topic_raw);
+		purple_conv_chat_write(PURPLE_CONV_CHAT(convo), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
 
-	g_free(topic_raw);
-	g_free(topic_html);
-	g_free(msg);
+		g_free(topic_raw);
+		g_free(topic_html);
+		g_free(msg);
+	}
+	g_free(buffer);
 }
 
-void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
+void hon_parse_userinfo(PurpleConnection* gc,int fd,guint16 packet_id){
 	hon_account* hon = gc->proto_data;
 	/* TODO: this is not right .. conversation could be closed already */
 	gchar* message = NULL;
-	gchar* user = read_string(buffer);
+	gchar* name,*strtime;
+	gchar* user = read_string(fd);
+	gchar* buffer;
 	if (!hon->whois_conv)
 		return;
 
@@ -910,20 +1008,23 @@ void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
 		message = g_strdup_printf(_("Cannot find user %s"),user);
 		break;
 	case 0x2c:
+		buffer = read_string(fd);
 		message = g_strdup_printf(_("User %s is offline, last seen %s"),user,buffer);
+		g_free(buffer);
 		break;
 	case 0x2d:
 		{
 			GString* msg = g_string_new(NULL);
-			guint32 chan_count = read_guint32(buffer);
+			guint32 chan_count = read_guint32(fd);
 			if (chan_count > 0)
 				g_string_printf(msg,_("User %s is online and in channels: "),user);
 			else
 				g_string_printf(msg,_("User %s is online."),user);
 			while (chan_count--)
 			{
+				buffer = read_string(fd);
 				msg = g_string_append(msg,buffer);
-				buffer += strlen(buffer) + 1;
+				g_free(buffer);
 				if (chan_count == 0)
 					msg = g_string_append(msg,".");
 				else
@@ -933,12 +1034,17 @@ void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint8 packet_id){
 		}
 		break;
 	case 0x2e:
-		message = g_strdup_printf(_("User %s is ingame, game name: %s, game time: %s"),user,buffer,buffer + (strlen(buffer) + 1));
+		name = read_string(fd);
+		strtime = read_string(fd);
+		message = g_strdup_printf(_("User %s is ingame, game name: %s, game time: %s"),user,name,strtime);
+		g_free(name);
+		g_free(time);
 		break;
 	}
 
 	purple_conversation_write(hon->whois_conv, "",message, PURPLE_MESSAGE_SYSTEM|PURPLE_MESSAGE_NO_LOG, time(NULL));
 	g_free(message);
+	g_free(user);
 	
 #ifdef MINBIF
 	if (packet_id == 0x2e)
@@ -959,7 +1065,7 @@ gboolean hon_send_pong(PurpleConnection *gc){
 }
 gboolean hon_send_login(PurpleConnection *gc, const gchar* cookie){
 	hon_account* hon = gc->proto_data;
-	return hon_send_packet(gc,HON_CS_AUTH_INFO/*0xFF*/,"isi",hon->self.account_id,hon->cookie,2);
+	return hon_send_packet(gc,HON_CS_AUTH_INFO/*0xFF*/,"isi",hon->self.account_id,hon->cookie,HON_PROTOCOL_VERSION);
 }
 gboolean hon_send_pm(PurpleConnection* gc,const gchar *username,const gchar* message){
 	return hon_send_packet(gc,HON_CS_PM/*0x1C*/,"ss",username,message);

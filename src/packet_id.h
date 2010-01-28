@@ -1,7 +1,7 @@
 
 /* server -> client */
-#define	 HON_SC_AUTH_ACCEPTED 	 0x00
-#define	 HON_SC_PING 	 0x01
+#define	 HON_SC_AUTH_ACCEPTED 	 0x1C00
+#define	 HON_SC_PING 	 0x2A00
 #define	 HON_SC_CHANNEL_MSG 	 0x03
 #define	 HON_SC_CHANGED_CHANNEL 	 0x04
 #define	 HON_SC_JOINED_CHANNEL 	 0x05
@@ -48,6 +48,7 @@
 #define	 HON_CS_PONG 	 0x02
 #define	 HON_CS_CHANNEL_MSG 	 0x03
 #define	 HON_CS_WHISPER 	 0x08
+#define	 HON_CS_AUTH_INFO 	 0x0C00
 #define	 HON_CS_BUDDY_ADD_NOTIFY 	 0x0D
 #define	 HON_CS_BUDDY_REMOVE_NOTIFY 	 0x0E
 #define	 HON_CS_JOIN_GAME 	 0x10
@@ -74,4 +75,6 @@
 #define	 HON_CS_JOIN_CHANNEL_PASSWORD 	 0x46
 #define	 HON_CS_CLAN_ADD_MEMBER 	 0x47
 #define	 HON_CS_CHANNEL_EMOTE 	 0x65
-#define	 HON_CS_AUTH_INFO 	 0xFF
+//#define	 HON_CS_AUTH_INFO 	 0xFF
+
+#define HON_PROTOCOL_VERSION 0x05

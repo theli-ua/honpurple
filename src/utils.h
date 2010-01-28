@@ -34,8 +34,4 @@ gchar* hon_strip(const gchar* input,gboolean escape);
 #define PHP_STRING	's'
 
 
-#define read_guint32(x) *((guint32*)x) ; x+=4
-#define read_string(x) x ; x+=strlen(x) + 1
-
-
 #endif

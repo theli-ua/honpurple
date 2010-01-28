@@ -625,13 +625,16 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,int fd){
 		if(!status)
 			status_id = HON_STATUS_OFFLINE_S;
 		purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\n",nick,flags,status,gamename,server);
-		purple_prpl_got_user_status(gc->account, nick, status_id,
-			HON_BUDDYID_ATTR , id,
-			HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
-			server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
+		if (nick)
+			purple_prpl_got_user_status(gc->account, nick, status_id,
+				HON_BUDDYID_ATTR , id,
+				HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
+				server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
 		g_free(gamename);
 		g_free(server);
 #ifdef MINBIF
+	if (nick)
+	{
 		if (status == HON_STATUS_INGAME)
 			status_id = g_strdup_printf("%s %s %d 0 %s",MINBIF_STATUS,
 					nick,status,raw_gamename);
@@ -640,6 +643,7 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,int fd){
 					nick,status);
 		serv_got_im(gc,MINBIF_USER,status_id,PURPLE_MESSAGE_RECV,time(NULL));
 		g_free(status_id);
+	}
 #endif
 		g_free(raw_gamename);
 	}
@@ -688,14 +692,16 @@ void hon_parse_user_status(PurpleConnection *gc,int fd){
 	g_free(server);
 #ifdef MINBIF
 	if (nick)
+	{
 		if (status == HON_STATUS_INGAME)
 			status_id = g_strdup_printf("%s %s %d %d %s",MINBIF_STATUS,
 					nick,status,matchid,raw_gamename);
 		else
 			status_id = g_strdup_printf("%s %s %d",MINBIF_STATUS,
 					nick,status);
-	serv_got_im(gc,MINBIF_USER,status_id,PURPLE_MESSAGE_RECV,time(NULL));
-	g_free(status_id);
+		serv_got_im(gc,MINBIF_USER,status_id,PURPLE_MESSAGE_RECV,time(NULL));
+		g_free(status_id);
+	}
 #endif
 	g_free(raw_gamename);
 }

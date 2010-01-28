@@ -441,45 +441,8 @@ static GHashTable *honprpl_chat_info_defaults(PurpleConnection *gc,
     call for handling in read_cb 
 */
 static int honprpl_read_recv(PurpleConnection *gc, int sock) {
-	int packet_length = 1,len = 0;
 	hon_account* hon = gc->proto_data;
-	gchar* buff = NULL;
-#if 0
-	if (hon->got_length == 0)
-	{
-		len += read(sock,&packet_length,4);
-		hon->databuff = g_byte_array_new();
-		hon->got_length = packet_length;
-	}
-
-	if (packet_length == 0)
-		return len;
-	
-	packet_length = hon->got_length - hon->databuff->len;
-	buff = g_malloc0(packet_length);
-
-	packet_length = recv(sock,buff,packet_length,0);
-	len += packet_length;
-
-	hon->databuff = g_byte_array_append(hon->databuff,buff,packet_length);
-
-	if (hon->databuff->len == hon->got_length)
-	{
-		hon_parse_packet(gc,hon->databuff->data,hon->databuff->len);
-		g_byte_array_free(hon->databuff,TRUE);
-		hon->databuff = NULL;
-		hon->got_length = 0;
-	}
-
-	//if (recv(sock, &packet_length,sizeof(&packet_length) ,MSG_PEEK) > 0)
-	//	len += honprpl_read_recv(gc,sock);
-#else
-	//buff = malloc(1024);
-	//len = recv(sock,buff,2,0);
 	return hon_parse_packet(gc,sock);
-	//free(buff);
-#endif
-	return len;
 }
 
 
@@ -733,7 +696,6 @@ static void honprpl_close(PurpleConnection *gc)
 		purple_input_remove(gc->inpa);
 	g_hash_table_destroy(hon->id2nick);
 	destroy_php_element(hon->account_data);
-	g_byte_array_free(hon->databuff,TRUE);
 	g_free(hon);
 	gc->proto_data = NULL;
 }

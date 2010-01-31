@@ -723,10 +723,9 @@ void hon_parse_pm_whisper(PurpleConnection *gc,int fd,guint16 is_whisper)
 			from_username++;
 		from_username++;
 	}
+	receive_flags = PURPLE_MESSAGE_RECV;
 	if (is_whisper)
-		receive_flags = PURPLE_MESSAGE_WHISPER;
-	else
-		receive_flags = PURPLE_MESSAGE_RECV;
+		receive_flags |= PURPLE_MESSAGE_WHISPER;
 	serv_got_im(gc, from_username, message, receive_flags, time(NULL));
 	g_free(message);
 	g_free(tmp);

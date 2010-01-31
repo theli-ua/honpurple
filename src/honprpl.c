@@ -1106,7 +1106,7 @@ static PurpleCmdRet honprpl_send_whisper(PurpleConversation *conv, const gchar *
 	hon_send_whisper(conv->account->gc,to_username,message);
 
 	colored_msg = hon2html(message);
-	purple_conversation_write(conv,hon->self.nickname, colored_msg, PURPLE_MESSAGE_SEND, time(NULL));
+	purple_conversation_write(conv,hon->self.nickname, colored_msg, PURPLE_MESSAGE_WHISPER|PURPLE_MESSAGE_SEND, time(NULL));
 	g_free(colored_msg);
 
 	return PURPLE_CMD_RET_OK;

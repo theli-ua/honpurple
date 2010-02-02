@@ -10,7 +10,7 @@ typedef struct {
 //		gpointer pointer;
 		GString* string;
 		GHashTable* array;
-	};
+	} u;
 } deserialized_element;
 
 GString* get_md5_string(gchar* input);

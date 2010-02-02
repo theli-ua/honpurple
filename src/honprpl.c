@@ -25,6 +25,7 @@
 #ifndef _WIN32
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <netinet/tcp.h>
 #endif
 
@@ -38,7 +39,7 @@ static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 	if(
 		!url_text
 		|| (data = deserialize_php(&url_text,strlen(url_text)))->type != PHP_ARRAY
-		|| ((data2 = g_hash_table_lookup(data->array,cb_data->buddy->name)) == 0)
+		|| ((data2 = g_hash_table_lookup(data->u.array,cb_data->buddy->name)) == 0)
 		|| data2->type != PHP_STRING
 		){
 			if (cb_data->error_cb)
@@ -46,7 +47,7 @@ static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 	}
 	else
 	{
-		cb_data->buddy->proto_data = GINT_TO_POINTER(atoi(data2->string->str));
+		cb_data->buddy->proto_data = GINT_TO_POINTER(atoi(data2->u.string->str));
 		if (cb_data->error_cb)
 			(cb_data->cb)(cb_data->buddy);
 	}
@@ -85,30 +86,30 @@ static void honprpl_update_buddies(PurpleConnection* gc){
 	g_hash_table_iter_init(&iter,hon->buddies);
 	while (g_hash_table_iter_next(&iter,NULL,&buddy_data))
 	{
-		deserialized_element* buddyname = g_hash_table_lookup(buddy_data->array,"nickname");
+		deserialized_element* buddyname = g_hash_table_lookup(buddy_data->u.array,"nickname");
 		if (buddyname)
 		{
 			PurpleBuddy* buddy;
-			guint32 id = atoi(((deserialized_element*)(g_hash_table_lookup(buddy_data->array,"buddy_id")))->string->str);
+			guint32 id = atoi(((deserialized_element*)(g_hash_table_lookup(buddy_data->u.array,"buddy_id")))->u.string->str);
 			if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id)))
 			{
-				g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(id),g_strdup(buddyname->string->str));
+				g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(id),g_strdup(buddyname->u.string->str));
 			}
 			
-			buddy = purple_find_buddy(gc->account,buddyname->string->str);
+			buddy = purple_find_buddy(gc->account,buddyname->u.string->str);
 			if (!buddy)
 			{
-				deserialized_element* clan_tag = g_hash_table_lookup(buddy_data->array,"clan_tag");
+				deserialized_element* clan_tag = g_hash_table_lookup(buddy_data->u.array,"clan_tag");
 				if (!clan_tag || clan_tag->type != PHP_STRING)
 				{
-					buddy = purple_buddy_new(gc->account,buddyname->string->str,NULL);
+					buddy = purple_buddy_new(gc->account,buddyname->u.string->str,NULL);
 				}
 				else
 				{
-					clan_tag->string = g_string_prepend_c(clan_tag->string,'[');
-					clan_tag->string = g_string_append_c(clan_tag->string,']');
-					clan_tag->string = g_string_append(clan_tag->string,buddyname->string->str);
-					buddy = purple_buddy_new(gc->account,buddyname->string->str,clan_tag->string->str);
+					clan_tag->u.string = g_string_prepend_c(clan_tag->u.string,'[');
+					clan_tag->u.string = g_string_append_c(clan_tag->u.string,']');
+					clan_tag->u.string = g_string_append(clan_tag->u.string,buddyname->u.string->str);
+					buddy = purple_buddy_new(gc->account,buddyname->u.string->str,clan_tag->u.string->str);
 				}
 				purple_blist_add_buddy(buddy,NULL,buddies,NULL);
 			}
@@ -130,7 +131,7 @@ static void honprpl_update_clanmates(PurpleConnection* gc){
 	if (!hon->clanmates || !hon->clan_info)
 		return;
 
-	clanname =  ((deserialized_element*)(g_hash_table_lookup(hon->clan_info,"name")))->string->str;
+	clanname =  ((deserialized_element*)(g_hash_table_lookup(hon->clan_info,"name")))->u.string->str;
 
 	clanmates = purple_find_group(clanname);
 
@@ -141,30 +142,30 @@ static void honprpl_update_clanmates(PurpleConnection* gc){
 	g_hash_table_iter_init(&iter,hon->clanmates);
 	while (g_hash_table_iter_next(&iter,&key,&buddy_data))
 	{
-		deserialized_element* buddyname = g_hash_table_lookup(buddy_data->array,"nickname");
+		deserialized_element* buddyname = g_hash_table_lookup(buddy_data->u.array,"nickname");
 		if (buddyname)
 		{
 			PurpleBuddy* buddy;
 			guint32 id = atoi(key);
 			if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id)))
 			{
-				g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(id),g_strdup(buddyname->string->str));
+				g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(id),g_strdup(buddyname->u.string->str));
 			}
 
-			buddy = purple_find_buddy(gc->account,buddyname->string->str);
+			buddy = purple_find_buddy(gc->account,buddyname->u.string->str);
 			if (!buddy)
 			{
 				if (!clan_tag || clan_tag->type != PHP_STRING)
 				{
-					buddy = purple_buddy_new(gc->account,buddyname->string->str,NULL);
+					buddy = purple_buddy_new(gc->account,buddyname->u.string->str,NULL);
 				}
 				else
 				{
-					GString* alias = g_string_new(clan_tag->string->str);
+					GString* alias = g_string_new(clan_tag->u.string->str);
 					alias = g_string_prepend_c(alias,'[');
 					alias = g_string_append_c(alias,']');
-					alias = g_string_append(alias,buddyname->string->str);
-					buddy = purple_buddy_new(gc->account,buddyname->string->str,alias->str);
+					alias = g_string_append(alias,buddyname->u.string->str);
+					buddy = purple_buddy_new(gc->account,buddyname->u.string->str,alias->str);
 					g_string_free(alias,TRUE);
 				}
 				purple_blist_add_buddy(buddy,NULL,clanmates,NULL);
@@ -304,17 +305,17 @@ static void honprpl_tooltip_text(PurpleBuddy *buddy,
 		deserialized_element* data;
 		gchar* buddy_string_id = g_strdup_printf("%d",buddy_id);
 		deserialized_element* clanmate = g_hash_table_lookup(hon->clanmates,buddy_string_id);
-		if (clanmate && ((data = g_hash_table_lookup(clanmate->array,"rank")) != 0))
+		if (clanmate && ((data = g_hash_table_lookup(clanmate->u.array,"rank")) != 0))
 		{
-			purple_notify_user_info_add_pair(info, _("Rank"),data->string->str);			
+			purple_notify_user_info_add_pair(info, _("Rank"),data->u.string->str);			
 		}
-		if (clanmate && ((data = g_hash_table_lookup(clanmate->array,"join_date")) != 0))
+		if (clanmate && ((data = g_hash_table_lookup(clanmate->u.array,"join_date")) != 0))
 		{
-			purple_notify_user_info_add_pair(info, _("Join date"),data->string->str);			
+			purple_notify_user_info_add_pair(info, _("Join date"),data->u.string->str);			
 		}
-		if (clanmate && ((data = g_hash_table_lookup(clanmate->array,"message")) != 0) && data->type != PHP_NULL)
+		if (clanmate && ((data = g_hash_table_lookup(clanmate->u.array,"message")) != 0) && data->type != PHP_NULL)
 		{
-			purple_notify_user_info_add_pair(info, _("Message"),data->string->str);			
+			purple_notify_user_info_add_pair(info, _("Message"),data->u.string->str);			
 		}
 		g_free(buddy_string_id);
 	}
@@ -515,11 +516,7 @@ static void honprpl_login_callback(gpointer data, gint source, const gchar *erro
 
 	hon->fd = source;
 
-#ifdef _WIN32
 	setsockopt(source,IPPROTO_TCP, TCP_NODELAY, &on, sizeof (on));
-#else
-	setsockopt(source,SOL_TCP, TCP_NODELAY, &on, sizeof (on));
-#endif
 
 	if(hon_send_login(gc,hon->cookie)){
 		purple_connection_update_progress(gc, _("Authenticating"),
@@ -562,14 +559,14 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 			purple_connection_set_state(gc, PURPLE_DISCONNECTED);
 		}
 		else{
-			deserialized_element* res = g_hash_table_lookup(account_data->array,"0");
-			if (!res || !res->int_val)
+			deserialized_element* res = g_hash_table_lookup(account_data->u.array,"0");
+			if (!res || !res->u.int_val)
 			{
 				destroy_php_element(res);
-				res = g_hash_table_lookup(account_data->array,"auth");
+				res = g_hash_table_lookup(account_data->u.array,"auth");
 				if (res && res->type == PHP_STRING)
 				{
-					purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_OTHER_ERROR,res->string->str);
+					purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_OTHER_ERROR,res->u.string->str);
 				}
 				else
 					purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_OTHER_ERROR,_("Unknown error"));
@@ -577,43 +574,43 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 			}
 			else{
 				deserialized_element* tmp;
-				gchar* account_id = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"account_id")))->string->str;
+				gchar* account_id = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"account_id")))->u.string->str;
 				/* TODO: check for errors */
-				hon->cookie = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"cookie")))->string->str;
-				hon->self.nickname = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"nickname")))->string->str;
-				hon->self.account_id = atoi(((deserialized_element*)(g_hash_table_lookup(account_data->array,"account_id")))->string->str);
+				hon->cookie = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"cookie")))->u.string->str;
+				hon->self.nickname = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"nickname")))->u.string->str;
+				hon->self.account_id = atoi(((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"account_id")))->u.string->str);
 				
-				tmp = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"buddy_list")));
+				tmp = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"buddy_list")));
 				if (tmp){
-					tmp = g_hash_table_lookup(tmp->array,account_id);
-					hon->buddies = tmp ? tmp->array : NULL;
+					tmp = g_hash_table_lookup(tmp->u.array,account_id);
+					hon->buddies = tmp ? tmp->u.array : NULL;
 				}
 
-				tmp = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"banned_list")));
+				tmp = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"banned_list")));
 				if (tmp){
-					tmp = g_hash_table_lookup(tmp->array,account_id);
-					hon->banned = tmp ? tmp->array : NULL;
+					tmp = g_hash_table_lookup(tmp->u.array,account_id);
+					hon->banned = tmp ? tmp->u.array : NULL;
 				}
 
-				tmp = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"ignored_list")));
+				tmp = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"ignored_list")));
 				if (tmp){
-					tmp = g_hash_table_lookup(tmp->array,account_id);
-					hon->ignores = tmp ? tmp->array : NULL;
+					tmp = g_hash_table_lookup(tmp->u.array,account_id);
+					hon->ignores = tmp ? tmp->u.array : NULL;
 				}
 
-				hon->clanmates = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"clan_roster")))->array;
+				hon->clanmates = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"clan_roster")))->u.array;
 				if (g_hash_table_lookup(hon->clanmates,"error"))
 				{
 					hon->clanmates = NULL;
 				}
 
-				hon->clan_info = ((deserialized_element*)(g_hash_table_lookup(account_data->array,"clan_member_info")))->array;
+				hon->clan_info = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"clan_member_info")))->u.array;
 				if (g_hash_table_lookup(hon->clan_info,"error"))
 					hon->clan_info = NULL;
 				if (hon->clan_info)
 				{
-					hon->self.clan_tag = ((deserialized_element*)g_hash_table_lookup(hon->clan_info,"tag"))->string->str;
-					hon->self.clan_name = ((deserialized_element*)g_hash_table_lookup(hon->clan_info,"name"))->string->str;
+					hon->self.clan_tag = ((deserialized_element*)g_hash_table_lookup(hon->clan_info,"tag"))->u.string->str;
+					hon->self.clan_name = ((deserialized_element*)g_hash_table_lookup(hon->clan_info,"name"))->u.string->str;
 				}
 				
 				
@@ -629,7 +626,7 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 
 
  				if (purple_proxy_connect(gc, gc->account, 
- 				                         ((deserialized_element*)(g_hash_table_lookup(account_data->array,"chat_url")))->string->str,
+ 				                         ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"chat_url")))->u.string->str,
  				                         HON_CHAT_PORT,
  					honprpl_login_callback, gc) == NULL)
 				{
@@ -716,10 +713,10 @@ static int honprpl_send_im(PurpleConnection *gc, const char *who,
 	return res;
 }
 #define fetch_info_row(x,y) 	\
-			if ((info_row = g_hash_table_lookup(needed_data->array,x)) != NULL\
+			if ((info_row = g_hash_table_lookup(needed_data->u.array,x)) != NULL\
 				&& info_row->type == PHP_STRING\
 				)\
-				purple_notify_user_info_add_pair(info, _(y), info_row->string->str);
+				purple_notify_user_info_add_pair(info, _(y), info_row->u.string->str);
 
 
 static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
@@ -740,9 +737,9 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 	else
 	{
 		if (
-			(needed_data = g_hash_table_lookup(data->array,"clan_info"))
+			(needed_data = g_hash_table_lookup(data->u.array,"clan_info"))
 			&& needed_data->type == PHP_ARRAY
-			&& (needed_data = g_hash_table_lookup(needed_data->array,account_id))
+			&& (needed_data = g_hash_table_lookup(needed_data->u.array,account_id))
 			&& needed_data->type == PHP_ARRAY
 			)
 		{
@@ -752,9 +749,9 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 		}
 
 		if (
-			(needed_data = g_hash_table_lookup(data->array,"all_stats"))
+			(needed_data = g_hash_table_lookup(data->u.array,"all_stats"))
 			&& needed_data->type == PHP_ARRAY
-			&& (needed_data = g_hash_table_lookup(needed_data->array,account_id))
+			&& (needed_data = g_hash_table_lookup(needed_data->u.array,account_id))
 			&& needed_data->type == PHP_ARRAY
 			)
 		{
@@ -868,8 +865,8 @@ static void honpurple_add_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer us
 	if(
 		!url_text
 		|| (data = deserialize_php(&url_text,strlen(url_text)))->type != PHP_ARRAY
-		|| !(data2 = g_hash_table_lookup(data->array,"0"))
-		|| data2->int_val == 0
+		|| !(data2 = g_hash_table_lookup(data->u.array,"0"))
+		|| data2->u.int_val == 0
 		)
 	{
 		purple_notify_error(NULL,_("Add buddy error"),_("Got bad data from masterserver"),NULL);
@@ -877,10 +874,10 @@ static void honpurple_add_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer us
 	}
 	else
 	{
-		data2 = g_hash_table_lookup(data->array,"notification");
+		data2 = g_hash_table_lookup(data->u.array,"notification");
 		hon_send_remove_buddy_notification(gc,GPOINTER_TO_INT(buddy->proto_data),
-			((deserialized_element*)(g_hash_table_lookup(data2->array,"1")))->int_val,
-			((deserialized_element*)(g_hash_table_lookup(data2->array,"2")))->int_val);
+			((deserialized_element*)(g_hash_table_lookup(data2->u.array,"1")))->u.int_val,
+			((deserialized_element*)(g_hash_table_lookup(data2->u.array,"2")))->u.int_val);
 	}
 	if (data)
 		destroy_php_element(data);
@@ -927,18 +924,18 @@ static void honpurple_remove_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer
 	if(
 		!url_text
 		|| (data = deserialize_php(&url_text,strlen(url_text)))->type != PHP_ARRAY
-		|| !(data2 = g_hash_table_lookup(data->array,"0"))
-		|| data2->int_val == 0
+		|| !(data2 = g_hash_table_lookup(data->u.array,"0"))
+		|| data2->u.int_val == 0
 		)
 	{
 		purple_notify_error(NULL,_("Remove buddy error"),_("Got bad data from masterserver"),NULL);
 	}
 	else
 	{
-		data2 = g_hash_table_lookup(data->array,"notification");
+		data2 = g_hash_table_lookup(data->u.array,"notification");
 		hon_send_remove_buddy_notification(gc,GPOINTER_TO_INT(buddy->proto_data),
-			((deserialized_element*)(g_hash_table_lookup(data2->array,"1")))->int_val,
-			((deserialized_element*)(g_hash_table_lookup(data2->array,"2")))->int_val);
+			((deserialized_element*)(g_hash_table_lookup(data2->u.array,"1")))->u.int_val,
+			((deserialized_element*)(g_hash_table_lookup(data2->u.array,"2")))->u.int_val);
 	}
 	if (data)
 		destroy_php_element(data);
@@ -1172,7 +1169,7 @@ static PurpleCmdRet honprpl_clan_commands(PurpleConversation *conv, const gchar 
 	if (!g_strcmp0(command,"invite"))
 	{
 		deserialized_element* rank = g_hash_table_lookup(hon->clan_info,"rank");
-		if (rank && !g_ascii_strncasecmp(rank->string->str,"member",6))
+		if (rank && !g_ascii_strncasecmp(rank->u.string->str,"member",6))
 		{
 			*error = g_strdup(_("Only clan founder or officer can invite"));
 			return PURPLE_CMD_RET_FAILED;
@@ -1724,4 +1721,4 @@ static PurplePluginInfo info =
 	NULL,
 };
 
-PURPLE_INIT_PLUGIN(null, honprpl_init, info);
+PURPLE_INIT_PLUGIN(honprpl, honprpl_init, info);

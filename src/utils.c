@@ -56,7 +56,7 @@ deserialized_element* deserialize_php(const gchar** pinput,int len){
 			buff = g_string_new(0);
 			while(*input != ';')
 				buff = g_string_append_c(buff,*input++);
-			res->int_val = atoi(buff->str);
+			res->u.int_val = atoi(buff->str);
 			g_string_free(buff,TRUE);
 			break;
 		case PHP_STRING:
@@ -68,13 +68,13 @@ deserialized_element* deserialize_php(const gchar** pinput,int len){
 			stringlen = atoi(buff->str);
 			g_string_free(buff,TRUE);
 			input++;// "
-			res->string = g_string_new(NULL);
+			res->u.string = g_string_new(NULL);
 			for ( i = 0 ; i < stringlen ; i++)
-				res->string = g_string_append_c(res->string,*input++);
+				res->u.string = g_string_append_c(res->u.string,*input++);
 			input++;// "
 			break;
 		case PHP_ARRAY:
-			res->array = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,destroy_php_element);
+			res->u.array = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,destroy_php_element);
 			input++;//:
 			
 			buff = g_string_new(0);
@@ -91,13 +91,13 @@ deserialized_element* deserialize_php(const gchar** pinput,int len){
 				switch (key->type)
 				{
 				case PHP_STRING:
-					ckey = key->string->str;
-					g_string_free(key->string,FALSE);
+					ckey = key->u.string->str;
+					g_string_free(key->u.string,FALSE);
 					g_free(key);
 					break;
 				case PHP_INT:
 					buff = g_string_new(NULL);
-					g_string_printf(buff,"%d",key->int_val);
+					g_string_printf(buff,"%d",key->u.int_val);
 					ckey = buff->str;
 					g_string_free(buff,FALSE);
 					destroy_php_element(key);
@@ -107,7 +107,7 @@ deserialized_element* deserialize_php(const gchar** pinput,int len){
 					destroy_php_element(key);
 				}
 				val = deserialize_php(&input,end-input);
-				g_hash_table_replace(res->array,ckey,val);
+				g_hash_table_replace(res->u.array,ckey,val);
 				stringlen--;
 			}
 			//input++; // }
@@ -126,10 +126,10 @@ void destroy_php_element(deserialized_element* element){
 		return;
 	switch (element->type){
 		case PHP_ARRAY:
-			g_hash_table_destroy(element->array);
+			g_hash_table_destroy(element->u.array);
 			break;
 		case PHP_STRING:
-			g_string_free(element->string,TRUE);
+			g_string_free(element->u.string,TRUE);
 			break;
 		
 	}

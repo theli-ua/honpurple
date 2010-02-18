@@ -1,18 +1,14 @@
-<?xml version="1.0" ?>
-<layman>
-<overlays>
-<overlay 
-type = "svn"
-src  = "http://honpurple.googlecode.com/svn/trunk/gentoo/overlay"
-contact = "theli.ua@gmail.com"
-name = "honpurple"
->
-<link>
-http://code.google.com/p/honpurple/
-</link>
-<description>
-Contains ebuilds for honpurple.
-</description>
-</overlay>
-</overlays>
-</layman>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE repositories SYSTEM "/dtd/repositories.dtd">
+<repositories xmlns="" version="1.0">
+<repo quality="experimental" status="unofficial">
+  <name>honpurple</name>
+  <description>Contains ebuilds for honpurple.</description>
+  <homepage>http://code.google.com/p/honpurple/</homepage>
+  <owner type="project">
+    <email>theli.ua@gmail.com</email>
+    <name>HoNpurple</name>
+  </owner>
+  <source type="svn">http://honpurple.googlecode.com/svn/trunk/gentoo/overlay</source>
+</repo>
+</repositories>

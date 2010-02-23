@@ -1109,6 +1109,35 @@ static PurpleCmdRet honprpl_send_whisper(PurpleConversation *conv, const gchar *
 	return PURPLE_CMD_RET_OK;
 	
 }
+static PurpleCmdRet honprpl_manage_buddies(PurpleConversation *conv, const gchar *cmd,
+										   gchar **args, gchar **error, void *userdata) 
+{
+	const char *command = args[0];
+	PurpleConnection* gc = conv->account->gc;
+	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+	PurpleBuddy* buddy = NULL;
+	if (!g_strcmp0(command,"add"))
+	{
+		buddy = purple_buddy_new(gc->account,args[1],NULL);
+		honprpl_add_buddy(gc,buddy,NULL);
+	}
+	else if (!g_strcmp0(command,"del"))
+	{
+		buddy = purple_find_buddy(gc->account,args[1]);
+		if (!buddy)
+		{
+			*error = g_strdup(_("Couldn't find buddy"));
+			return PURPLE_CMD_RET_FAILED;
+		}
+		honprpl_remove_buddy(gc,buddy,NULL);
+	}
+	else {
+		*error = g_strdup(_("Unknown buddy command"));
+		return PURPLE_CMD_RET_FAILED;
+	}
+	return PURPLE_CMD_RET_OK;	
+}
+
 static PurpleCmdRet honprpl_channel_auth(PurpleConversation *conv, const gchar *cmd,
 										 gchar **args, gchar **error, void *userdata) 
 {
@@ -1683,6 +1712,14 @@ static void honprpl_init(PurplePlugin *plugin)
 		"prpl-hon",
 		honprpl_whisper_buddies ,
 		_("whisper all buddies"),
+		NULL); 
+	purple_cmd_register("buddy",
+		"ws",
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM,
+		"prpl-hon",
+		honprpl_manage_buddies ,
+		_("buddy add <nickname> - add a buddy\nbuddy del <nickname> - remove buddy"),
 		NULL); 
 }
 

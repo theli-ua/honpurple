@@ -442,8 +442,39 @@ static GHashTable *honprpl_chat_info_defaults(PurpleConnection *gc,
     call for handling in read_cb 
 */
 static int honprpl_read_recv(PurpleConnection *gc, int sock) {
+	gint16 packet_length = 0,len = 0;
 	hon_account* hon = gc->proto_data;
-	return hon_parse_packet(gc,sock);
+	gchar* buff = NULL;
+	if (hon->got_length == 0)
+	{
+		len += read(sock,&packet_length,2);
+		packet_length = ((packet_length & 0xFF) << 8) | ((packet_length & 0xFF00) >> 8);
+		hon->databuff = g_byte_array_new();
+		hon->got_length = packet_length;
+	}
+
+	if (packet_length == 0)
+		return len;
+
+	packet_length = hon->got_length - hon->databuff->len;
+	buff = g_malloc0(packet_length);
+
+	packet_length = recv(sock,buff,packet_length,0);
+	len += packet_length;
+
+	hon->databuff = g_byte_array_append(hon->databuff,buff,packet_length);
+
+	if (hon->databuff->len == hon->got_length)
+	{
+		hon_parse_packet(gc,hon->databuff->data,hon->databuff->len);
+		g_byte_array_free(hon->databuff,TRUE);
+		hon->databuff = NULL;
+		hon->got_length = 0;
+	}
+
+	//if (recv(sock, &packet_length,sizeof(&packet_length) ,MSG_PEEK) > 0)
+	//	len += honprpl_read_recv(gc,sock);
+	return len;
 }
 
 
@@ -556,7 +587,7 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 		if (account_data->type != PHP_ARRAY)
 		{
 			purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_OTHER_ERROR,_("Bad data received from server"));
-			purple_connection_set_state(gc, PURPLE_DISCONNECTED);
+			//purple_connection_set_state(gc, PURPLE_DISCONNECTED);
 		}
 		else{
 			deserialized_element* res = g_hash_table_lookup(account_data->u.array,"0");
@@ -570,7 +601,7 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 				}
 				else
 					purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_OTHER_ERROR,_("Unknown error"));
-				purple_connection_set_state(gc, PURPLE_DISCONNECTED);
+				//purple_connection_set_state(gc, PURPLE_DISCONNECTED);
 			}
 			else{
 				deserialized_element* tmp;

@@ -32,7 +32,7 @@
 #define HON_NOTIFICATION_BUDDY_REMOVED 0x04
 
 const char *hon_normalize_nick(const PurpleAccount *acct, const char *input);
-int hon_parse_packet(PurpleConnection *gc, int socket);
+int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length);
 
 void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer);
 void hon_parse_user_status(PurpleConnection *gc,gchar* buffer);

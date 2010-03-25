@@ -26,7 +26,7 @@
 
 #define HON_DEBUG_PREFIX "honprpl"
 
-#define DISPLAY_VERSION "0.4.1"
+#define DISPLAY_VERSION "0.4.2"
 #define HON_CLIENT_REQUESTER "client_requester.php"
 #define HON_DEFAULT_MASTER_SERVER "http://masterserver.hon.s2games.com/"
 

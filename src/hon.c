@@ -104,13 +104,12 @@ gchar* read_string(int fd){
 int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
 	GString* hexdump;
  	guint16 packet_id = read_guint16(buffer);
-#if 1
+#if _DEBUG
 	hexdump = g_string_new(NULL);
 	hexdump_g_string_append(hexdump,"",buffer,packet_length - 2);
 	purple_debug_info(HON_DEBUG_PREFIX, "packet:\nid:%X(%d)\nlength:%d\ndata:\n%s\n",packet_id,packet_id,packet_length, hexdump->str);
 	g_string_free(hexdump,TRUE);
 #endif
-	purple_debug_info(HON_DEBUG_PREFIX, "packet:id:%X(%d)\n",packet_id,packet_id);
 	switch (packet_id)
 	{
 	case 0:
@@ -149,7 +148,7 @@ int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
 	case HON_SC_UPDATE_STATUS/*0x0C*/:
 		hon_parse_user_status(gc,buffer);
 		break;
-	case HON_SC_NOTIFICATION/*0x12*/:
+	case HON_SC_NOTIFICATION/*0xB4*/:
 		hon_parse_notification(gc,buffer);
 		break;
 	case HON_SC_CLAN_MESSAGE/*0x13*/:
@@ -232,7 +231,7 @@ int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
 		break;
 	default:
 		hexdump = g_string_new(NULL);
-		hexdump_g_string_append(hexdump,"",buffer,packet_length - 1);
+		hexdump_g_string_append(hexdump,"",buffer,packet_length - sizeof(packet_id));
 		purple_debug_info(HON_DEBUG_PREFIX, "unknown packet:\nid:%X(%d)\nlength:%d\ndata:\n%s\n",packet_id,packet_id,packet_length, hexdump->str);
 		g_string_free(hexdump,TRUE);
 		break;
@@ -547,29 +546,45 @@ void hon_parse_global_notification(PurpleConnection *gc,gchar* buffer){
 	purple_notify_warning(NULL,username,buffer,NULL);
 }
 void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
+	PurpleBuddy* buddy;
+	guint32 buddyid;
+	PurpleGroup* buddies;
 	hon_account* hon = gc->proto_data;
 	guint8 notification_type = read_byte(buffer);
-	gchar* title = NULL;
+	gchar* title = NULL,msg = NULL;
 	switch (notification_type)
 	{
+	/*
 	case HON_NOTIFICATION_ADDED_AS_BUDDY:
 		title = g_strdup(_("User added you as buddy"));
 		break;
-	case HON_NOTIFICATION_BUDDY_ADDED:
-		title = g_strdup(_("Buddy added"));
+	*/
+	case HON_NOTIFICATION_BUDDY_ACCEPTED:
+		buddies = purple_find_group(HON_BUDDIES_GROUP);
+		buddyid = read_guint32(buffer);
+		read_guint32(buffer); /* notification id */
+		g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(buddyid),g_strdup(buffer));
+		buddy = purple_buddy_new(gc->account,buffer,NULL);
+		purple_blist_add_buddy(buddy,NULL,buddies,NULL);
+		title = g_strdup(_("Friendship Accepted"));
+		msg = g_strdup_printf(_("%s accepted your friendship request"),buffer);
 		break;
+	/*
 	case HON_NOTIFICATION_REMOVED_AS_BUDDY:
 		title = g_strdup(_("User removed you as buddy"));
 		break;
 	case HON_NOTIFICATION_BUDDY_REMOVED:
 		title = g_strdup(_("Buddy removed"));
 		break;
+	*/
 	default :
 		title = g_strdup_printf(_("Unknown notification type (%d)"),notification_type);
+		msg = g_strdup(buffer);
 		break;
 	}
-	purple_notify_info(NULL,title,buffer,NULL);
+	purple_notify_info(NULL,title,msg,NULL);
 	g_free(title);
+	g_free(msg);
 }
 void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 	guint32 status,flags;
@@ -1007,8 +1022,8 @@ gboolean hon_send_whois(PurpleConnection* gc,const gchar *username){
 gboolean hon_send_remove_buddy_notification(PurpleConnection* gc,guint32 buddyid, guint32 code1, guint32 code2){
 	return hon_send_packet(gc,HON_CS_BUDDY_REMOVE_NOTIFY/*0x0e*/,"iii",buddyid,code1,code2);
 }
-gboolean hon_send_add_buddy_notification(PurpleConnection* gc,guint32 buddyid, guint32 code1, guint32 code2){
-	return hon_send_packet(gc,HON_CS_BUDDY_ADD_NOTIFY/*0x0d*/,"iii",buddyid,code1,code2);
+gboolean hon_send_add_buddy_notification(PurpleConnection* gc,guint32 selfid, gchar* nick){
+	return hon_send_packet(gc,HON_CS_BUDDY_ADD_NOTIFY/*0x0d*/,"is",selfid,nick);
 }
 gboolean hon_send_channel_kick(PurpleConnection* gc,guint32 chatid, guint32 kickedid){
 	return hon_send_packet(gc,HON_CS_CHANNEL_KICK/*0x31*/,"ii",chatid,kickedid);

@@ -161,9 +161,6 @@ int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
 	case HON_SC_PM_FAILED/*0x1D*/:
 		hon_parse_pm_failed(gc,buffer);
 		break;
-	case HON_SC_CHANNEL_LIST/*0x1F*/:
-		hon_parse_channel_list(gc,buffer);
-		break;
 	case HON_SC_WHISPER_BUDDIES/*0x20*/:
 		hon_parse_pm_whisper(gc,buffer,TRUE);
 		break;
@@ -695,35 +692,6 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint16 is_whisper)
 	serv_got_im(gc, from_username, message, receive_flags, time(NULL));
 	g_free(message);
 }
-void hon_parse_channel_list(PurpleConnection *gc,gchar* buffer){
-	hon_account* hon = gc->proto_data;
-	guint32 count = read_guint32(buffer);
-	count = read_guint32(buffer);
-	if (!hon->roomlist)
-		return;
-	while (count--)
-	{
-		PurpleRoomlistRoom *room;
-		gchar* name,*colorname;
-		guint32 id,participants;
-		id = read_guint32(buffer);
-		name = read_string(buffer);
-		colorname = hon_strip(name,FALSE);
-		participants = read_guint32(buffer);
-
-		room = purple_roomlist_room_new(PURPLE_ROOMLIST_ROOMTYPE_ROOM, colorname, NULL);
-
-		purple_roomlist_room_add_field(hon->roomlist, room, GINT_TO_POINTER(id));
-		purple_roomlist_room_add_field(hon->roomlist, room, name);
-		purple_roomlist_room_add_field(hon->roomlist, room, GINT_TO_POINTER(participants));
-		purple_roomlist_room_add(hon->roomlist, room);
-		g_free(colorname);
-	}
-	purple_roomlist_set_in_progress(hon->roomlist, FALSE);
-	purple_roomlist_unref(hon->roomlist);
-	hon->roomlist = NULL;
-
-}
 void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 {
 	PurpleConversation *convo;
@@ -1022,9 +990,6 @@ gboolean hon_send_chat_message(PurpleConnection *gc, guint32 id, const char *mes
 }
 gboolean hon_send_chat_topic(PurpleConnection *gc, guint32 id, const char *topic){
 	return hon_send_packet(gc,HON_CS_UPDATE_TOPIC/*0x30*/,"is",id,topic);
-}
-gboolean hon_send_room_list_request(PurpleConnection *gc){
-	return hon_send_packet(gc,HON_CS_CHANNEL_LIST/*0x1F*/,"");
 }
 gboolean hon_send_whisper(PurpleConnection* gc,const gchar *username,const gchar* message){
 	return hon_send_packet(gc,HON_CS_WHISPER/*0x08*/,"ss",username,message);

@@ -1056,49 +1056,6 @@ static void honprpl_set_chat_topic(PurpleConnection *gc, int id,
 {
 	hon_send_chat_topic(gc,id,topic);
 }
-
-static PurpleRoomlist *honprpl_roomlist_get_list(PurpleConnection *gc) {
-	
-	PurpleRoomlist *roomlist = purple_roomlist_new(gc->account);
-	hon_account* hon = gc->proto_data;
-	GList *fields = NULL;
-	PurpleRoomlistField *field;
-	/* set up the room list */
-	field = purple_roomlist_field_new(PURPLE_ROOMLIST_FIELD_INT, _("Id"), "Id", FALSE);
-	fields = g_list_append(fields, field);
-	field = purple_roomlist_field_new(PURPLE_ROOMLIST_FIELD_STRING, "room",
-		"room", TRUE /* hidden */);
-	fields = g_list_append(fields, field);
-	field = purple_roomlist_field_new(PURPLE_ROOMLIST_FIELD_INT, _("participants"), "participants", FALSE);
-	fields = g_list_append(fields, field);
-
-	purple_roomlist_set_fields(roomlist, fields);
-	purple_roomlist_set_in_progress(roomlist, TRUE);
-
-	hon_send_room_list_request(gc);
-
-	if(hon->roomlist)
-		purple_roomlist_unref(hon->roomlist);
-	hon->roomlist = roomlist;
-	return roomlist;
-}
-
-static void honprpl_roomlist_cancel(PurpleRoomlist *list) {
-	PurpleConnection *gc;
-	hon_account *hon;
-
-	gc = purple_account_get_connection(list->account);
-	hon = gc->proto_data;
-
-	purple_roomlist_set_in_progress(list, FALSE);
-
-	if (hon->roomlist == list) {
-		hon->roomlist = NULL;
-		purple_roomlist_unref(list);
-	}
-
-}
-
 static PurpleCmdRet honprpl_send_whisper(PurpleConversation *conv, const gchar *cmd,
 								 gchar **args, gchar **error, void *userdata) 
 {
@@ -1457,8 +1414,8 @@ static PurplePluginProtocolInfo prpl_info =
 	NULL,                                /* get_cb_real_name */
 	honprpl_set_chat_topic,             /* set_chat_topic */
 	NULL,                                /* find_blist_chat */
-	honprpl_roomlist_get_list,          /* roomlist_get_list */
-	honprpl_roomlist_cancel,            /* roomlist_cancel */
+	NULL,          /* roomlist_get_list */
+	NULL,            /* roomlist_cancel */
 	NULL,   /* roomlist_expand_category */
 	NULL,           /* can_receive_file */
 	NULL,                                /* send_file */

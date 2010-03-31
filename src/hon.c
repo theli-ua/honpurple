@@ -551,7 +551,7 @@ void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
 	PurpleGroup* buddies;
 	hon_account* hon = gc->proto_data;
 	guint8 notification_type = read_byte(buffer);
-	gchar* title = NULL,msg = NULL;
+	gchar* title = NULL,*msg = NULL;
 	switch (notification_type)
 	{
 	/*

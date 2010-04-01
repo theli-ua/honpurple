@@ -28,7 +28,7 @@ static gboolean hon_send_packet(PurpleConnection* gc,guint16 packet_id,const gch
 	va_list marker;
 	hon_account* hon = gc->proto_data;
 	GByteArray* buffer = g_byte_array_new();
-	buffer = g_byte_array_append(buffer,&packet_id,2);
+	buffer = g_byte_array_append(buffer,(guint8*)&packet_id,2);
 	va_start( marker, paramstring );
 
 	while (paramstring != 0x00 && *paramstring != 0x00)
@@ -148,9 +148,6 @@ int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
 	case HON_SC_UPDATE_STATUS/*0x0C*/:
 		hon_parse_user_status(gc,buffer);
 		break;
-	case HON_SC_NOTIFICATION/*0xB4*/:
-		hon_parse_notification(gc,buffer);
-		break;
 	case HON_SC_CLAN_MESSAGE/*0x13*/:
 		hon_parse_clan_message(gc,buffer);
 		break;
@@ -171,6 +168,9 @@ int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
 	case HON_SC_USER_INFO_ONLINE/*0x2d*/:
 	case HON_SC_USER_INFO_IN_GAME/*0x2e*/:
 		hon_parse_userinfo(gc,buffer,packet_id);
+		break;
+	case HON_SC_CHANNEL_UPDATE:
+		hon_parse_channel_update(gc,buffer);
 		break;
 	case HON_SC_UPDATE_TOPIC/*0x30*/:
 		hon_parse_chat_topic(gc,buffer);
@@ -228,6 +228,12 @@ int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
 		break;
 	case 0x68:
 		read_guint32(buffer);
+		break;
+	case HON_SC_REQUEST_NOTIFICATION/*0xB2*/:
+		hon_parse_request(gc,buffer);
+		break;
+	case HON_SC_NOTIFICATION/*0xB4*/:
+		hon_parse_notification(gc,buffer);
 		break;
 	default:
 		hexdump = g_string_new(NULL);
@@ -545,6 +551,42 @@ void hon_parse_global_notification(PurpleConnection *gc,gchar* buffer){
 	gchar* username = read_string(buffer);
 	purple_notify_warning(NULL,username,buffer,NULL);
 }
+static void
+finish_auth_request(PurpleConnection *gc, gchar *nick)
+{
+	hon_send_accept_buddy(gc,nick);
+}
+
+void hon_parse_request(PurpleConnection *gc,gchar* buffer){
+	hon_account* hon = gc->proto_data;
+	gchar *title = NULL,*msg = NULL;
+	guint8 notification_type = read_byte(buffer);
+	guint32 notification_id = read_guint32(buffer);
+
+	switch (notification_type)
+	{
+	case HON_NOTIFICATION_ADDED_AS_BUDDY:
+		title = g_strdup(_("Friendship Request"));
+		msg = g_strdup_printf(_("Sent friendship request to %s"),buffer);
+		purple_notify_info(NULL,title,msg,NULL);
+		break;
+	case HON_NOTIFICATION_BUDDY_ACCEPTED:
+		purple_request_input(gc, NULL, _("Friend Request"),
+			NULL, buffer, TRUE, FALSE, NULL,
+			_("_Accept"), G_CALLBACK(finish_auth_request),
+			_("_Ignore"), NULL,
+			purple_connection_get_account(gc), buffer, NULL,
+			gc);
+		break;
+	default :
+		title = g_strdup_printf(_("Unknown request notification type (%d)"),notification_type);
+		msg = g_strdup(buffer);
+		purple_notify_info(NULL,title,msg,NULL);
+		break;
+	}
+	g_free(title);
+	g_free(msg);
+}
 void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
 	PurpleBuddy* buddy;
 	guint32 buddyid;
@@ -554,11 +596,8 @@ void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
 	gchar *title = NULL,*msg = NULL;
 	switch (notification_type)
 	{
-	/*
+	
 	case HON_NOTIFICATION_ADDED_AS_BUDDY:
-		title = g_strdup(_("User added you as buddy"));
-		break;
-	*/
 	case HON_NOTIFICATION_BUDDY_ACCEPTED:
 		buddies = purple_find_group(HON_BUDDIES_GROUP);
 		buddyid = read_guint32(buffer);
@@ -567,7 +606,10 @@ void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
 		buddy = purple_buddy_new(gc->account,buffer,NULL);
 		purple_blist_add_buddy(buddy,NULL,buddies,NULL);
 		title = g_strdup(_("Friendship Accepted"));
-		msg = g_strdup_printf(_("%s accepted your friendship request"),buffer);
+		if (notification_type == HON_NOTIFICATION_ADDED_AS_BUDDY)
+			msg = g_strdup_printf(_("Accepted friendship request from %s"),buffer);
+		else
+			msg = g_strdup_printf(_("%s accepted your friendship request"),buffer);
 		break;
 	/*
 	case HON_NOTIFICATION_REMOVED_AS_BUDDY:
@@ -707,6 +749,44 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint16 is_whisper)
 	serv_got_im(gc, from_username, message, receive_flags, time(NULL));
 	g_free(message);
 }
+void hon_parse_channel_update(PurpleConnection *gc,gchar* buffer){
+	PurpleConversation *convo;
+	hon_account* hon = gc->proto_data;
+	guint8 unknown;
+	guint32 op_count,chat_id;
+	guint32 purple_flags = 0;
+	gchar* topic,*topic_raw;
+	GHashTable* ops = NULL;
+	gchar* buf;
+	gchar* room; 
+	chat_id = read_guint32(buffer);
+	room = read_string(buffer);
+	unknown = read_byte(buffer);
+	buf = read_string(buffer);
+	topic = hon2html(buf);
+	topic_raw = hon_strip(buf,FALSE);
+	op_count = read_guint32(buffer);
+	ops = g_hash_table_new(g_direct_hash,g_direct_equal);
+	if (op_count != 0)
+	{
+		guint32 op_id,op_type;
+		while (op_count--)
+		{
+			op_id = read_guint32(buffer);
+			op_type = read_byte(buffer);
+			g_hash_table_insert(ops,GINT_TO_POINTER(op_id),GINT_TO_POINTER(op_type));
+		}
+	}
+	convo = purple_find_chat(gc,chat_id);
+	if (!convo)
+		convo = serv_got_joined_chat(gc, chat_id, room);
+	purple_conv_chat_set_topic(PURPLE_CONV_CHAT(convo), NULL, topic_raw);
+	if (convo->data != NULL)
+		g_hash_table_destroy(convo->data);
+	convo->data = ops;
+	g_free(topic);
+	g_free(topic_raw);
+}
 void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 {
 	PurpleConversation *convo;
@@ -726,10 +806,10 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 	topic = hon2html(buf);
 	topic_raw = hon_strip(buf,FALSE);
 	op_count = read_guint32(buffer);
+	ops = g_hash_table_new(g_direct_hash,g_direct_equal);
 	if (op_count != 0)
 	{
 		guint32 op_id,op_type;
-		ops = g_hash_table_new(g_direct_hash,g_direct_equal);
 		while (op_count--)
 		{
 			op_id = read_guint32(buffer);
@@ -778,11 +858,12 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 	flags = 0;
 	purple_flags = PURPLE_CBFLAGS_NONE;
 
-	if(ops)
-	{
-		flags = GPOINTER_TO_INT(g_hash_table_lookup(ops,GINT_TO_POINTER(hon->self.account_id)));
-		g_hash_table_destroy(ops);
-	}
+	flags = GPOINTER_TO_INT(g_hash_table_lookup(ops,GINT_TO_POINTER(hon->self.account_id)));
+	if (convo->data != NULL)
+		g_hash_table_destroy(convo->data);
+	convo->data = ops;
+	
+	
 	if (flags == HON_FLAGS_CHAT_ADMINISTRATOR)
 		purple_flags = PURPLE_CBFLAGS_FOUNDER;
 	else if (flags == HON_FLAGS_CHAT_LEADER)
@@ -843,6 +924,8 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 	nick = hon_normalize_nick(gc->account,nick);
 	status = read_byte(buffer);
 	flags = read_byte(buffer);
+
+	flags |= GPOINTER_TO_INT(g_hash_table_lookup(conv->data,GINT_TO_POINTER(account_id)));
 
 	if (flags == HON_FLAGS_CHAT_ADMINISTRATOR)
 		purple_flags = PURPLE_CBFLAGS_FOUNDER;
@@ -1065,4 +1148,7 @@ gboolean hon_send_join_game(PurpleConnection* gc,const gchar* status,guint32 mat
 }
 gboolean hon_send_whisper_buddies(PurpleConnection* gc,const gchar* message){
 	return hon_send_packet(gc,HON_CS_WHISPER_BUDDIES,"s",message);
+}
+gboolean hon_send_accept_buddy(PurpleConnection* gc,const gchar* buddy){
+	return hon_send_packet(gc,HON_CS_BUDDY_ACCEPT,"s",buddy);
 }

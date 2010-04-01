@@ -26,7 +26,7 @@
 #define HON_FLAGS_CHAT_ADMINISTRATOR 0x03
 #define HON_FLAGS_CHAT_STUFF 0x04
 
-//#define HON_NOTIFICATION_ADDED_AS_BUDDY 0x01
+#define HON_NOTIFICATION_ADDED_AS_BUDDY 0x01
 #define HON_NOTIFICATION_BUDDY_ACCEPTED 0x02
 #define HON_NOTIFICATION_REMOVED_AS_BUDDY 0x03
 #define HON_NOTIFICATION_BUDDY_REMOVED 0x04
@@ -61,7 +61,9 @@ void hon_parse_channel_silence_placed(PurpleConnection* gc,gchar* buffer);
 void hon_parse_channel_auth_enable_disable(PurpleConnection *gc,gchar* buffer,guint16 packet_id);
 void hon_parse_channel_auth_add_delete(PurpleConnection *gc,gchar* buffer,guint16 packet_id);
 void hon_parse_channel_auth_list(PurpleConnection *gc,gchar* buffer);
+void hon_parse_channel_update(PurpleConnection *gc,gchar* buffer);
 void hon_parse_emote(PurpleConnection *gc,gchar* buffer);
+void hon_parse_request(PurpleConnection *gc,gchar* buffer);
 
 
 gboolean hon_send_pong(PurpleConnection *gc);
@@ -92,5 +94,7 @@ gboolean hon_send_channel_auth_list(PurpleConnection* gc,guint32 chatid);
 gboolean hon_send_emote(PurpleConnection* gc,guint32 chatid,const gchar* string);
 gboolean hon_send_join_game(PurpleConnection* gc,const gchar* status,guint32 matchid,gchar* server);
 gboolean hon_send_whisper_buddies(PurpleConnection* gc,const gchar* message);
+
+gboolean hon_send_accept_buddy(PurpleConnection* gc,const gchar* buddy);
 
 #endif

@@ -9,6 +9,7 @@
 
 #include "utils.h"
 #include <roomlist.h>
+#include <request.h>
 
 
 

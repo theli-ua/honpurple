@@ -551,7 +551,7 @@ void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
 	PurpleGroup* buddies;
 	hon_account* hon = gc->proto_data;
 	guint8 notification_type = read_byte(buffer);
-	gchar* title = NULL,*msg = NULL;
+	gchar *title = NULL,*msg = NULL;
 	switch (notification_type)
 	{
 	/*
@@ -1017,10 +1017,6 @@ gboolean hon_send_clan_message(PurpleConnection* gc,const gchar *message){
 }
 gboolean hon_send_whois(PurpleConnection* gc,const gchar *username){
 	return hon_send_packet(gc,HON_CS_USER_INFO/*0x2a*/,"s",username);
-}
-
-gboolean hon_send_remove_buddy_notification(PurpleConnection* gc,guint32 buddyid, guint32 code1, guint32 code2){
-	return hon_send_packet(gc,HON_CS_BUDDY_REMOVE_NOTIFY/*0x0e*/,"iii",buddyid,code1,code2);
 }
 gboolean hon_send_add_buddy_notification(PurpleConnection* gc,guint32 selfid, gchar* nick){
 	return hon_send_packet(gc,HON_CS_BUDDY_ADD_NOTIFY/*0x0d*/,"is",selfid,nick);

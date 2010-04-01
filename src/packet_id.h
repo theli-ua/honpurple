@@ -49,7 +49,6 @@
 #define	 HON_CS_WHISPER 	 0x08
 #define	 HON_CS_AUTH_INFO 	 0x0C00
 #define	 HON_CS_BUDDY_ADD_NOTIFY 	 0x0D
-#define	 HON_CS_BUDDY_REMOVE_NOTIFY 	 0x0E
 #define	 HON_CS_JOIN_GAME 	 0x10
 #define	 HON_CS_CLAN_MESSAGE 	 0x13
 #define	 HON_CS_PM 	 0x1C

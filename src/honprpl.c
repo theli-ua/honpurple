@@ -925,13 +925,6 @@ static void honpurple_remove_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer
 	{
 		purple_notify_error(NULL,_("Remove buddy error"),_("Got bad data from masterserver"),NULL);
 	}
-	else
-	{
-		data2 = g_hash_table_lookup(data->u.array,"notification");
-		hon_send_remove_buddy_notification(gc,GPOINTER_TO_INT(buddy->proto_data),
-			((deserialized_element*)(g_hash_table_lookup(data2->u.array,"1")))->u.int_val,
-			((deserialized_element*)(g_hash_table_lookup(data2->u.array,"2")))->u.int_val);
-	}
 	if (data)
 		destroy_php_element(data);
 	purple_buddy_destroy(buddy);

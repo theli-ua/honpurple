@@ -927,6 +927,8 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 
 	flags |= GPOINTER_TO_INT(g_hash_table_lookup(conv->data,GINT_TO_POINTER(account_id)));
 
+	flags &= 0xF;
+
 	if (flags == HON_FLAGS_CHAT_ADMINISTRATOR)
 		purple_flags = PURPLE_CBFLAGS_FOUNDER;
 	else if (flags == HON_FLAGS_CHAT_LEADER)

@@ -2,7 +2,7 @@ Package: honpurple
 Version: HONPURPLE_VERSION
 Architecture: i386
 Maintainer: Anton Romanov <theli.ua@gmail.com>
-Depends: libglib2.0-0 (>= 2.16.0),libpurple0 (>= 1:2.6.0) 
+Depends: libglib2.0-0 (>= 2.16.0),libpurple0 (>= 2.6.0)
 Section: net
 Priority: optional
 Homepage: http://code.google.com/p/honpurple/

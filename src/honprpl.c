@@ -510,11 +510,15 @@ static void honprpl_read_callback(gpointer data, gint source, PurpleInputConditi
 	}
 
 	if(! ret) {
-
+#ifdef MINBIF
+		purple_connection_error_reason(gc,
+			PURPLE_CONNECTION_ERROR_NETWORK_ERROR,
+			_("Server closed the connection\n that, probably, means that you connected from hon"));
+#else
 		purple_connection_error_reason(gc,
 			PURPLE_CONNECTION_ERROR_NAME_IN_USE,
 			_("Server closed the connection\n that, probably, means that you connected from hon"));
-
+#endif
 	} else if(ret < 0) {
 		const gchar *err_str = g_strerror(err);
 		char *msg = NULL;

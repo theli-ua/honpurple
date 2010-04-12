@@ -103,7 +103,9 @@ gchar* read_string(int fd){
 /* Packet parsers */
 int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
 	GString* hexdump;
+	hon_account *hon = gc->proto_data;
  	guint16 packet_id = read_guint16(buffer);
+	hon->gotPacket = TRUE;
 #if _DEBUG
 	hexdump = g_string_new(NULL);
 	hexdump_g_string_append(hexdump,"",buffer,packet_length - 2);

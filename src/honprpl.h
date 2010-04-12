@@ -45,6 +45,8 @@
 #define HON_INGAME_EMBLEM "hon_ingame"
 #define HON_PREMIUM_EMBLEM "hon_premium"
 
+#define HON_NETWORK_TIMEOUT 30
+
 #define N_(x) (x)
 #define _(x) (x)
 
@@ -70,6 +72,8 @@ typedef struct {
 	PurpleConversation* whois_conv;
 	guint32 got_length;
 	GByteArray* databuff;
+	guint timeout_handle;
+	gboolean gotPacket;
 } hon_account;
 
 typedef void (*nick2idCallback)(PurpleBuddy* buddy);

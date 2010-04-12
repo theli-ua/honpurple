@@ -529,7 +529,22 @@ static void honprpl_read_callback(gpointer data, gint source, PurpleInputConditi
 	}
 }
 
-
+gboolean timeout_handler(gpointer data){
+	PurpleConnection *gc = data;
+	hon_account *hon = gc->proto_data;
+	gchar *msg;
+	if (!hon->gotPacket)
+	{
+		msg = g_strdup_printf(_("Lost connection with server: did not receive any packet in %d seconds"), HON_NETWORK_TIMEOUT);
+		purple_connection_error_reason(gc,
+			PURPLE_CONNECTION_ERROR_NETWORK_ERROR,
+			msg);
+		g_free(msg);
+		return FALSE;
+	}
+	hon->gotPacket = FALSE;
+	return TRUE;		
+}
 static void honprpl_login_callback(gpointer data, gint source, const gchar *error_message)
 {
 
@@ -555,6 +570,8 @@ static void honprpl_login_callback(gpointer data, gint source, const gchar *erro
 			4);  /* total number of steps */
 		gc->inpa = purple_input_add(source, PURPLE_INPUT_READ,
 			honprpl_read_callback, gc);
+		hon->gotPacket = FALSE;
+		hon->timeout_handle = purple_timeout_add_seconds(HON_NETWORK_TIMEOUT,timeout_handler,(gpointer)gc);
 	}
 	else
 	{
@@ -712,6 +729,8 @@ static void honprpl_login(PurpleAccount *acct)
 
 	honacc->account_data = NULL;
 	honacc->got_length = 0;
+	honacc->gotPacket = FALSE;
+	honacc->timeout_handle = 0;
 	honacc->id2nick = g_hash_table_new_full(g_direct_hash,g_direct_equal,NULL,g_free);
 }
 
@@ -724,6 +743,8 @@ static void honprpl_close(PurpleConnection *gc)
 		purple_input_remove(gc->inpa);
 	g_hash_table_destroy(hon->id2nick);
 	destroy_php_element(hon->account_data);
+	if (hon->timeout_handle)
+		purple_timeout_remove(hon->timeout_handle);
 	g_free(hon);
 	gc->proto_data = NULL;
 }

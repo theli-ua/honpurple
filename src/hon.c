@@ -921,6 +921,8 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 	account_id = read_guint32(buffer);
 	chan_id = read_guint32(buffer);
 	conv = purple_find_chat(gc,chan_id);
+	if (!conv)
+		return;
 
 	extra = nick;
 	nick = hon_normalize_nick(gc->account,nick);

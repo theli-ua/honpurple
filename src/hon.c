@@ -1075,7 +1075,7 @@ gboolean hon_send_pong(PurpleConnection *gc){
 }
 gboolean hon_send_login(PurpleConnection *gc, const gchar* cookie){
 	hon_account* hon = gc->proto_data;
-	return hon_send_packet(gc,HON_CS_AUTH_INFO/*0xFF*/,"isi",hon->self.account_id,hon->cookie,HON_PROTOCOL_VERSION);
+	return hon_send_packet(gc,HON_CS_AUTH_INFO/*0xFF*/,"isbii",hon->self.account_id,hon->cookie,(char)0,HON_PROTOCOL_VERSION,(guint32)0);
 }
 gboolean hon_send_pm(PurpleConnection* gc,const gchar *username,const gchar* message){
 	return hon_send_packet(gc,HON_CS_PM/*0x1C*/,"ss",username,message);

@@ -1,6 +1,7 @@
 0.5
 	bugfixes
 	sync buddy/clan list (recreate list on every connect)
+	fix for long server packets (like disconnect on /auth list if there are a LOT of people there)
 0.4
 	fix for 100% cpu usage on some ubuntu boxes
 	/e /emote

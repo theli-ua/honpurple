@@ -53,6 +53,7 @@ static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 	}
 	if (data)
 		destroy_php_element(data);
+	data = NULL;
 
 	g_free(cb_data);
 }
@@ -594,6 +595,7 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 	if (account_data)
 	{
 		destroy_php_element(account_data);
+		hon->account_data = NULL;
 	}
 
 	if(!(url_text)){
@@ -614,7 +616,6 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 			deserialized_element* res = g_hash_table_lookup(account_data->u.array,"0");
 			if (!res || !res->u.int_val)
 			{
-				destroy_php_element(res);
 				res = g_hash_table_lookup(account_data->u.array,"auth");
 				if (res && res->type == PHP_STRING)
 				{
@@ -746,7 +747,9 @@ static void honprpl_close(PurpleConnection *gc)
 	if (gc->inpa)
 		purple_input_remove(gc->inpa);
 	g_hash_table_destroy(hon->id2nick);
-	destroy_php_element(hon->account_data);
+	if (hon->account_data)
+		destroy_php_element(hon->account_data);
+	hon->account_data = NULL;
 	if (hon->timeout_handle)
 		purple_timeout_remove(hon->timeout_handle);
 	g_free(hon);
@@ -952,6 +955,7 @@ static void honpurple_remove_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer
 	}
 	if (data)
 		destroy_php_element(data);
+	data = NULL;
 	purple_buddy_destroy(buddy);
 
 }

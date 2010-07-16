@@ -1,3 +1,6 @@
+0.5
+	bugfixes
+	sync buddy/clan list (recreate list on every connect)
 0.4
 	fix for 100% cpu usage on some ubuntu boxes
 	/e /emote

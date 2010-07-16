@@ -70,6 +70,17 @@ static void honprpl_nick2id(PurpleBuddy* buddy,nick2idCallback cb,nick2idCallbac
 	purple_util_fetch_url_request_len_with_account(buddy->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_nick2id_cb,cb_data);
 	g_free(url);
 }
+static void honprpl_cleanup_blist(PurpleConnection* gc){
+	GSList* buddylist = purple_find_buddies	(gc->account,NULL);
+	GSList* buddy = buddylist;
+	
+	while (buddy != NULL)
+	{
+		purple_blist_remove_buddy((PurpleBuddy*)buddy->data);
+		buddy = buddy->next;
+	}
+	g_slist_free(buddylist);
+}
 static void honprpl_update_buddies(PurpleConnection* gc){
 	hon_account* hon = gc->proto_data;
 	PurpleGroup* buddies = purple_find_group(HON_BUDDIES_GROUP);
@@ -668,7 +679,7 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 				
 				
 				
-
+				honprpl_cleanup_blist(gc);
 				honprpl_update_buddies(gc);
 				honprpl_update_clanmates(gc);
 

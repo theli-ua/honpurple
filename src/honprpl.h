@@ -47,8 +47,12 @@
 
 #define HON_NETWORK_TIMEOUT 30
 
-#define N_(x) (x)
-#define _(x) (x)
+#ifndef N_
+#	define N_(x) (x)
+#endif
+#ifndef _
+#	define _(x) (x)
+#endif
 
 typedef struct {
 	gchar* nickname;

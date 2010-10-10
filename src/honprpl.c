@@ -27,12 +27,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <unistd.h>
 #endif
 
 static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	nick2id_cb_data* cb_data = user_data;
-	PurpleConnection *gc = cb_data->buddy->account->gc;
-	hon_account* hon = gc->proto_data;
 	deserialized_element* data = NULL;
 	deserialized_element* data2 = NULL;
 
@@ -96,7 +95,7 @@ static void honprpl_update_buddies(PurpleConnection* gc){
 		purple_blist_add_group(buddies, NULL);
 	}
 	g_hash_table_iter_init(&iter,hon->buddies);
-	while (g_hash_table_iter_next(&iter,NULL,&buddy_data))
+	while (g_hash_table_iter_next(&iter,NULL,(gpointer*)&buddy_data))
 	{
 		deserialized_element* buddyname = g_hash_table_lookup(buddy_data->u.array,"nickname");
 		if (buddyname)
@@ -152,7 +151,7 @@ static void honprpl_update_clanmates(PurpleConnection* gc){
 		purple_blist_add_group(clanmates, NULL);
 	}
 	g_hash_table_iter_init(&iter,hon->clanmates);
-	while (g_hash_table_iter_next(&iter,&key,&buddy_data))
+	while (g_hash_table_iter_next(&iter,(gpointer*)&key,(gpointer*)&buddy_data))
 	{
 		deserialized_element* buddyname = g_hash_table_lookup(buddy_data->u.array,"nickname");
 		if (buddyname)
@@ -470,11 +469,11 @@ static int honprpl_read_recv(PurpleConnection *gc, int sock) {
 	packet_length = recv(sock,buff,packet_length,0);
 	len += packet_length;
 
-	hon->databuff = g_byte_array_append(hon->databuff,buff,packet_length);
+	hon->databuff = g_byte_array_append(hon->databuff,(const guint8 *)buff,packet_length);
 
 	if (hon->databuff->len == hon->got_length && len > 0)
 	{
-		hon_parse_packet(gc,hon->databuff->data,hon->databuff->len);
+		hon_parse_packet(gc,(gchar*)hon->databuff->data,hon->databuff->len);
 		g_byte_array_free(hon->databuff,TRUE);
 		hon->databuff = NULL;
 		hon->got_length = 0;
@@ -881,7 +880,7 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 	purple_notify_userinfo(gc,        /* connection the buddy info came through */
 		buddy->name,  /* buddy's username */
 		info,      /* body */
-		destroy_php_element,      /* callback called when dialog closed */
+		(PurpleNotifyCloseCallback)destroy_php_element,      /* callback called when dialog closed */
 		data);     /* userdata for callback */
 
 	purple_notify_user_info_destroy(info);
@@ -924,7 +923,6 @@ static void honprpl_get_info(PurpleConnection *gc, const char *username) {
 }
 static void honpurple_add_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	PurpleBuddy *buddy = user_data;
-	PurpleConnection *gc = buddy->account->gc;
 	deserialized_element* data = NULL;
 	deserialized_element* data2 = NULL;
 
@@ -976,7 +974,6 @@ static void honprpl_add_buddies(PurpleConnection *gc, GList *buddies,
 }
 static void honpurple_remove_buddy_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	PurpleBuddy *buddy = user_data;
-	PurpleConnection *gc = buddy->account->gc;
 	deserialized_element* data = NULL;
 	deserialized_element* data2 = NULL;
 
@@ -1124,7 +1121,6 @@ static PurpleCmdRet honprpl_manage_buddies(PurpleConversation *conv, const gchar
 {
 	const char *command = args[0];
 	PurpleConnection* gc = conv->account->gc;
-	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
 	PurpleBuddy* buddy = NULL;
 	if (!g_strcmp0(command,"add"))
 	{
@@ -1283,8 +1279,6 @@ static PurpleCmdRet honprpl_whisper_buddies(PurpleConversation *conv, const gcha
 static PurpleCmdRet honprpl_join_game(PurpleConversation *conv, const gchar *cmd,
 										  gchar **args, gchar **error, void *userdata) 
 {
-	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
-	hon_account* hon = conv->account->gc->proto_data;
 	hon_send_join_game(conv->account->gc,args[2],atoi(args[1]),args[0]);
 	return PURPLE_CMD_RET_OK;
 }
@@ -1333,7 +1327,7 @@ static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 		return PURPLE_CMD_RET_FAILED;
 	}
 	g_hash_table_iter_init(&iter,hon->id2nick);
-	while (kicked_id == 0 && g_hash_table_iter_next(&iter,(gpointer *)&id,&name))
+	while (kicked_id == 0 && g_hash_table_iter_next(&iter,(gpointer *)&id,(gpointer *)&name))
 	{
 		if (strcmp(name,user)==0)
 		{

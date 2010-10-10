@@ -74,7 +74,7 @@ deserialized_element* deserialize_php(const gchar** pinput,int len){
 			input++;// "
 			break;
 		case PHP_ARRAY:
-			res->u.array = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,destroy_php_element);
+			res->u.array = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,(GDestroyNotify)destroy_php_element);
 			input++;//:
 			
 			buff = g_string_new(0);

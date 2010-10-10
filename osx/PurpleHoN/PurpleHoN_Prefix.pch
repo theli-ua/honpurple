@@ -1,0 +1,15 @@
+//
+//  PurpleHoN_Prefix.pch
+//  PurpleHoN
+//
+//  Created by Dopefish on 2010-10-10.
+//  Copyright 2010 David Rudie. All rights reserved.
+//
+
+#ifdef __OBJC__
+#	import <Cocoa/Cocoa.h>
+#	import <Adium/AIPlugin.h>
+#	import <AdiumLibpurple/AILibpurplePlugin.h>
+#	import <AdiumLibpurple/CBPurpleAccount.h>
+#	import <AdiumLibpurple/PurpleService.h>
+#endif

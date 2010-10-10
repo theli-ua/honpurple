@@ -1,0 +1,388 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 45;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		00292F9312620E3A00BEA057 /* Adium.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00292F9212620E3A00BEA057 /* Adium.framework */; };
+		00292F9512620E3A00BEA057 /* AdiumLibpurple.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00292F9412620E3A00BEA057 /* AdiumLibpurple.framework */; };
+		00292F9712620E3A00BEA057 /* AIUtilities.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00292F9612620E3A00BEA057 /* AIUtilities.framework */; };
+		00292F9912620E4100BEA057 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00292F9812620E4100BEA057 /* Cocoa.framework */; };
+		00292F9D12620E5B00BEA057 /* libglib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00292F9C12620E5B00BEA057 /* libglib.framework */; };
+		00292F9F12620E5B00BEA057 /* libgmodule.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00292F9E12620E5B00BEA057 /* libgmodule.framework */; };
+		00292FA112620E5B00BEA057 /* libgobject.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00292FA012620E5B00BEA057 /* libgobject.framework */; };
+		00292FA312620E5B00BEA057 /* libgthread.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00292FA212620E5B00BEA057 /* libgthread.framework */; };
+		00292FA512620E5B00BEA057 /* libintl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00292FA412620E5B00BEA057 /* libintl.framework */; };
+		00292FAF12620F7000BEA057 /* hon-small.png in Resources */ = {isa = PBXBuildFile; fileRef = 00292FAD12620F7000BEA057 /* hon-small.png */; };
+		00292FB012620F7000BEA057 /* hon.png in Resources */ = {isa = PBXBuildFile; fileRef = 00292FAE12620F7000BEA057 /* hon.png */; };
+		00292FBA1262113D00BEA057 /* hon.c in Sources */ = {isa = PBXBuildFile; fileRef = 00292FB31262113D00BEA057 /* hon.c */; };
+		00292FBB1262113D00BEA057 /* honprpl.c in Sources */ = {isa = PBXBuildFile; fileRef = 00292FB51262113D00BEA057 /* honprpl.c */; };
+		00292FBC1262113D00BEA057 /* utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 00292FB81262113D00BEA057 /* utils.c */; };
+		00292FD11262119900BEA057 /* HoNWrapper.m in Sources */ = {isa = PBXBuildFile; fileRef = 00292FD01262119900BEA057 /* HoNWrapper.m */; };
+		00292FD61262122E00BEA057 /* PurpleHoNService.m in Sources */ = {isa = PBXBuildFile; fileRef = 00292FD51262122E00BEA057 /* PurpleHoNService.m */; };
+		00292FD91262134600BEA057 /* PurpleHoNAccount.m in Sources */ = {isa = PBXBuildFile; fileRef = 00292FD81262134600BEA057 /* PurpleHoNAccount.m */; };
+		8D5B49A804867FD3000E48DA /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 8D5B49A704867FD3000E48DA /* InfoPlist.strings */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		00292E4312620DF800BEA057 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		00292E4512620DF800BEA057 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
+		00292E4712620DF800BEA057 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		00292F9212620E3A00BEA057 /* Adium.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Adium.framework; path = "/Users/dopefish/Builds/adium-1.4/build/Debug/Adium.framework"; sourceTree = "<absolute>"; };
+		00292F9412620E3A00BEA057 /* AdiumLibpurple.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdiumLibpurple.framework; path = "/Users/dopefish/Builds/adium-1.4/build/Debug/AdiumLibpurple.framework"; sourceTree = "<absolute>"; };
+		00292F9612620E3A00BEA057 /* AIUtilities.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AIUtilities.framework; path = "/Users/dopefish/Builds/adium-1.4/build/Debug/AIUtilities.framework"; sourceTree = "<absolute>"; };
+		00292F9812620E4100BEA057 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		00292F9C12620E5B00BEA057 /* libglib.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libglib.framework; path = "/Users/dopefish/Builds/adium-1.4/Frameworks/libglib.framework"; sourceTree = "<absolute>"; };
+		00292F9E12620E5B00BEA057 /* libgmodule.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libgmodule.framework; path = "/Users/dopefish/Builds/adium-1.4/Frameworks/libgmodule.framework"; sourceTree = "<absolute>"; };
+		00292FA012620E5B00BEA057 /* libgobject.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libgobject.framework; path = "/Users/dopefish/Builds/adium-1.4/Frameworks/libgobject.framework"; sourceTree = "<absolute>"; };
+		00292FA212620E5B00BEA057 /* libgthread.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libgthread.framework; path = "/Users/dopefish/Builds/adium-1.4/Frameworks/libgthread.framework"; sourceTree = "<absolute>"; };
+		00292FA412620E5B00BEA057 /* libintl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libintl.framework; path = "/Users/dopefish/Builds/adium-1.4/Frameworks/libintl.framework"; sourceTree = "<absolute>"; };
+		00292FAD12620F7000BEA057 /* hon-small.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "hon-small.png"; sourceTree = "<group>"; };
+		00292FAE12620F7000BEA057 /* hon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = hon.png; sourceTree = "<group>"; };
+		00292FB31262113D00BEA057 /* hon.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hon.c; path = ../../src/hon.c; sourceTree = SOURCE_ROOT; };
+		00292FB41262113D00BEA057 /* hon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hon.h; path = ../../src/hon.h; sourceTree = SOURCE_ROOT; };
+		00292FB51262113D00BEA057 /* honprpl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = honprpl.c; path = ../../src/honprpl.c; sourceTree = SOURCE_ROOT; };
+		00292FB61262113D00BEA057 /* honprpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = honprpl.h; path = ../../src/honprpl.h; sourceTree = SOURCE_ROOT; };
+		00292FB71262113D00BEA057 /* packet_id.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = packet_id.h; path = ../../src/packet_id.h; sourceTree = SOURCE_ROOT; };
+		00292FB81262113D00BEA057 /* utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = utils.c; path = ../../src/utils.c; sourceTree = SOURCE_ROOT; };
+		00292FB91262113D00BEA057 /* utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = utils.h; path = ../../src/utils.h; sourceTree = SOURCE_ROOT; };
+		00292FCF1262119900BEA057 /* HoNWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HoNWrapper.h; sourceTree = "<group>"; };
+		00292FD01262119900BEA057 /* HoNWrapper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HoNWrapper.m; sourceTree = "<group>"; };
+		00292FD41262122E00BEA057 /* PurpleHoNService.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PurpleHoNService.h; sourceTree = "<group>"; };
+		00292FD51262122E00BEA057 /* PurpleHoNService.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PurpleHoNService.m; sourceTree = "<group>"; };
+		00292FD71262134600BEA057 /* PurpleHoNAccount.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PurpleHoNAccount.h; sourceTree = "<group>"; };
+		00292FD81262134600BEA057 /* PurpleHoNAccount.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PurpleHoNAccount.m; sourceTree = "<group>"; };
+		00293221126230BC00BEA057 /* PurpleHoN_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PurpleHoN_Prefix.pch; sourceTree = "<group>"; };
+		089C167EFE841241C02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		8D576316048677EA00EA77CD /* PurpleHoN.AdiumLibpurplePlugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PurpleHoN.AdiumLibpurplePlugin; sourceTree = BUILT_PRODUCTS_DIR; };
+		8D576317048677EA00EA77CD /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8D576313048677EA00EA77CD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				00292F9312620E3A00BEA057 /* Adium.framework in Frameworks */,
+				00292F9512620E3A00BEA057 /* AdiumLibpurple.framework in Frameworks */,
+				00292F9712620E3A00BEA057 /* AIUtilities.framework in Frameworks */,
+				00292F9912620E4100BEA057 /* Cocoa.framework in Frameworks */,
+				00292F9D12620E5B00BEA057 /* libglib.framework in Frameworks */,
+				00292F9F12620E5B00BEA057 /* libgmodule.framework in Frameworks */,
+				00292FA112620E5B00BEA057 /* libgobject.framework in Frameworks */,
+				00292FA312620E5B00BEA057 /* libgthread.framework in Frameworks */,
+				00292FA512620E5B00BEA057 /* libintl.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		00292E4912620E0600BEA057 /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				00292E4312620DF800BEA057 /* AppKit.framework */,
+				00292E4512620DF800BEA057 /* CoreData.framework */,
+				00292E4712620DF800BEA057 /* Foundation.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		00292F9112620E1800BEA057 /* Linked Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				00292F9212620E3A00BEA057 /* Adium.framework */,
+				00292F9412620E3A00BEA057 /* AdiumLibpurple.framework */,
+				00292F9612620E3A00BEA057 /* AIUtilities.framework */,
+				00292F9812620E4100BEA057 /* Cocoa.framework */,
+				00292F9C12620E5B00BEA057 /* libglib.framework */,
+				00292F9E12620E5B00BEA057 /* libgmodule.framework */,
+				00292FA012620E5B00BEA057 /* libgobject.framework */,
+				00292FA212620E5B00BEA057 /* libgthread.framework */,
+				00292FA412620E5B00BEA057 /* libintl.framework */,
+			);
+			name = "Linked Frameworks";
+			sourceTree = "<group>";
+		};
+		00292FB21262112D00BEA057 /* HoN Purple */ = {
+			isa = PBXGroup;
+			children = (
+				00292FB31262113D00BEA057 /* hon.c */,
+				00292FB41262113D00BEA057 /* hon.h */,
+				00292FB51262113D00BEA057 /* honprpl.c */,
+				00292FB61262113D00BEA057 /* honprpl.h */,
+				00292FB71262113D00BEA057 /* packet_id.h */,
+				00292FB81262113D00BEA057 /* utils.c */,
+				00292FB91262113D00BEA057 /* utils.h */,
+			);
+			name = "HoN Purple";
+			sourceTree = "<group>";
+		};
+		089C166AFE841209C02AAC07 /* PurpleHoN */ = {
+			isa = PBXGroup;
+			children = (
+				00292FB21262112D00BEA057 /* HoN Purple */,
+				08FB77AFFE84173DC02AAC07 /* Source */,
+				089C167CFE841241C02AAC07 /* Resources */,
+				089C1671FE841209C02AAC07 /* Frameworks and Libraries */,
+				19C28FB6FE9D52B211CA2CBB /* Products */,
+			);
+			name = PurpleHoN;
+			sourceTree = "<group>";
+		};
+		089C1671FE841209C02AAC07 /* Frameworks and Libraries */ = {
+			isa = PBXGroup;
+			children = (
+				00292F9112620E1800BEA057 /* Linked Frameworks */,
+				00292E4912620E0600BEA057 /* Other Frameworks */,
+			);
+			name = "Frameworks and Libraries";
+			sourceTree = "<group>";
+		};
+		089C167CFE841241C02AAC07 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				00292FAD12620F7000BEA057 /* hon-small.png */,
+				00292FAE12620F7000BEA057 /* hon.png */,
+				8D576317048677EA00EA77CD /* Info.plist */,
+				8D5B49A704867FD3000E48DA /* InfoPlist.strings */,
+				00293221126230BC00BEA057 /* PurpleHoN_Prefix.pch */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		08FB77AFFE84173DC02AAC07 /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				00292FCF1262119900BEA057 /* HoNWrapper.h */,
+				00292FD01262119900BEA057 /* HoNWrapper.m */,
+				00292FD71262134600BEA057 /* PurpleHoNAccount.h */,
+				00292FD81262134600BEA057 /* PurpleHoNAccount.m */,
+				00292FD41262122E00BEA057 /* PurpleHoNService.h */,
+				00292FD51262122E00BEA057 /* PurpleHoNService.m */,
+			);
+			name = Source;
+			sourceTree = "<group>";
+		};
+		19C28FB6FE9D52B211CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8D576316048677EA00EA77CD /* PurpleHoN.AdiumLibpurplePlugin */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8D57630D048677EA00EA77CD /* PurpleHoN */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1DEB911A08733D790010E9CD /* Build configuration list for PBXNativeTarget "PurpleHoN" */;
+			buildPhases = (
+				8D57630F048677EA00EA77CD /* Resources */,
+				8D576311048677EA00EA77CD /* Sources */,
+				8D576313048677EA00EA77CD /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PurpleHoN;
+			productInstallPath = "$(HOME)/Library/Bundles";
+			productName = PurpleHoN;
+			productReference = 8D576316048677EA00EA77CD /* PurpleHoN.AdiumLibpurplePlugin */;
+			productType = "com.apple.product-type.bundle";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		089C1669FE841209C02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				ORGANIZATIONNAME = "David Rudie";
+			};
+			buildConfigurationList = 1DEB911E08733D790010E9CD /* Build configuration list for PBXProject "PurpleHoN" */;
+			compatibilityVersion = "Xcode 3.1";
+			developmentRegion = English;
+			hasScannedForEncodings = 1;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 089C166AFE841209C02AAC07 /* PurpleHoN */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8D57630D048677EA00EA77CD /* PurpleHoN */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8D57630F048677EA00EA77CD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8D5B49A804867FD3000E48DA /* InfoPlist.strings in Resources */,
+				00292FAF12620F7000BEA057 /* hon-small.png in Resources */,
+				00292FB012620F7000BEA057 /* hon.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8D576311048677EA00EA77CD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				00292FBA1262113D00BEA057 /* hon.c in Sources */,
+				00292FBB1262113D00BEA057 /* honprpl.c in Sources */,
+				00292FBC1262113D00BEA057 /* utils.c in Sources */,
+				00292FD11262119900BEA057 /* HoNWrapper.m in Sources */,
+				00292FD61262122E00BEA057 /* PurpleHoNService.m in Sources */,
+				00292FD91262134600BEA057 /* PurpleHoNAccount.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		8D5B49A704867FD3000E48DA /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				089C167EFE841241C02AAC07 /* English */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		1DEB911B08733D790010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				Adium = "../../../adium-1.4";
+				COPY_PHASE_STRIP = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../../../adium-1.4/build/Debug\"",
+					"\"$(SRCROOT)/../../../adium-1.4/Frameworks\"",
+				);
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = PurpleHoN_Prefix.pch;
+				GCC_VERSION = 4.2;
+				HEADER_SEARCH_PATHS = (
+					"$(Adium)/build/Debug/AIUtilities.framework/Headers",
+					"$(Adium)/build/Debug/AdiumLibpurple.framework/Headers",
+					"$(Adium)/build/Debug/Adium.framework/Headers",
+					"$(Adium)/Frameworks/libpurple.framework/Headers",
+					"$(Adium)/Frameworks/libintl.framework/Headers",
+					"$(Adium)/Frameworks/libglib.framework/Headers",
+					"../**",
+				);
+				INFOPLIST_FILE = Info.plist;
+				INSTALL_PATH = "$(HOME)/Library/Application Support/Adium 2.0/PlugIns/";
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_CFLAGS = "-DPURPLE_STATIC_PRPL";
+				PRODUCT_NAME = PurpleHoN;
+				WRAPPER_EXTENSION = AdiumLibpurplePlugin;
+			};
+			name = Debug;
+		};
+		1DEB911C08733D790010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../../../adium-1.4/build/Debug\"",
+					"\"$(SRCROOT)/../../../adium-1.4/Frameworks\"",
+				);
+				GCC_MODEL_TUNING = G5;
+				INFOPLIST_FILE = Info.plist;
+				INSTALL_PATH = "$(HOME)/Library/Bundles";
+				PRODUCT_NAME = PurpleHoN;
+				WRAPPER_EXTENSION = bundle;
+			};
+			name = Release;
+		};
+		1DEB911F08733D790010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../../../adium-1.4/Frameworks\"/**",
+					"\"$(SRCROOT)/../../../adium-1.4/build/Debug\"/**",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"\"$SRCROOT/glib.framework/Headers\"",
+					"\"$SRCROOT/../../../adium-1.4/Frameworks/libglib.framework/Headers\"",
+				);
+				INSTALL_PATH = "~/Library/Application Support/Adium 2.0/PlugIns/";
+				MACH_O_TYPE = mh_bundle;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = (
+					"-undefined",
+					dynamic_lookup,
+				);
+				PREBINDING = NO;
+				SDKROOT = macosx10.5;
+				VALID_ARCHS = i386;
+				WRAPPER_EXTENSION = AdiumLibpurplePlugin;
+			};
+			name = Debug;
+		};
+		1DEB912008733D790010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				PREBINDING = NO;
+				SDKROOT = macosx10.6;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DEB911A08733D790010E9CD /* Build configuration list for PBXNativeTarget "PurpleHoN" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB911B08733D790010E9CD /* Debug */,
+				1DEB911C08733D790010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1DEB911E08733D790010E9CD /* Build configuration list for PBXProject "PurpleHoN" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB911F08733D790010E9CD /* Debug */,
+				1DEB912008733D790010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 089C1669FE841209C02AAC07 /* Project object */;
+}

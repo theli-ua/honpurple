@@ -9,5 +9,7 @@
 #import <AdiumLibpurple/CBPurpleAccount.h>
 #import "PurpleHoNService.h"
 
+#define KEY_HON_COMMANDS @"HON:Commands"
+
 @interface PurpleHoNAccount : CBPurpleAccount {}
 @end

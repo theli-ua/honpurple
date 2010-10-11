@@ -32,7 +32,6 @@
 
 @implementation PurpleHoNService
 
-// Account creation
 - (Class)accountClass
 {
 	return [PurpleHoNAccount class];
@@ -50,7 +49,6 @@
 }
  */
 
-// Service description
 - (NSString *)serviceCodeUniqueID
 {
 	return @"prpl-hon";
@@ -89,6 +87,11 @@
 - (BOOL)caseSensitive
 {
 	return NO;
+}
+
+- (BOOL)canCreateGroupChats
+{
+	return YES;
 }
 
 - (AIServiceImportance)serviceImportance
@@ -136,4 +139,5 @@
 {
 	return nil;
 }
+
 @end

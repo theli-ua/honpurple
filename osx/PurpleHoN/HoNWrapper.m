@@ -11,6 +11,7 @@
 #import "honprpl.h"
 
 @implementation HoNWrapper
+
 - (void)installLibpurplePlugin
 {
 	NSLog(@"HON installLibpurplePlugin");
@@ -28,4 +29,5 @@
 	purple_init_honprpl_plugin();
 	NSLog(@"HON installPlugin End");
 }
+
 @end

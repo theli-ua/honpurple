@@ -21,7 +21,7 @@
 #import <AIUtilities/AIAttributedStringAdditions.h>
 #import <AIUtilities/AIMutableStringAdditions.h>
 #import <AIUtilities/AIStringAdditions.h>
-#import "SLPurpleCocoaAdapter.h"
+#import <libpurple/cmds.h>
 
 #include "../../src/honprpl.h"
 
@@ -42,6 +42,58 @@
 - (void)openInspectorForContactInfo:(AIListContact *)theContact
 {
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"AIShowContactInfo" object:theContact];
+}
+
+#pragma mark Command handling
+
+static PurpleConversation *fakeConversation(PurpleAccount *account)
+{
+	PurpleConversation *conv;
+	
+	conv = g_new0(PurpleConversation, 1);
+	conv->type = PURPLE_CONV_TYPE_IM;
+	conv->account = account;
+	
+	return conv;
+}
+
+- (void)didConnect
+{
+	[super didConnect];
+	
+	PurpleConversation *conv = fakeConversation(self.purpleAccount);
+	
+	for (NSString *command in [[self preferenceForKey:KEY_HON_COMMANDS
+												group:GROUP_ACCOUNT_STATUS] componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]])
+	{
+		if ([command hasPrefix:@"/"])
+		{
+			command = [command substringFromIndex:1];
+		}
+		
+		//command = [command stringByReplacingOccurrencesOfString:@"
+		
+		if (command.length)
+		{
+			char *error;
+			PurpleCmdStatus cmdStatus = purple_cmd_do_command(conv, [command UTF8String], [command UTF8String], &error);
+			
+			if (cmdStatus == PURPLE_CMD_STATUS_NOT_FOUND)
+			{
+				NSLog(@"Command (%@) not found", command);
+			}
+			else if (cmdStatus != PURPLE_CMD_STATUS_OK)
+			{
+				NSLog(@"Command (%@) failed: %d - %@", command, cmdStatus, [NSString stringWithUTF8String:error]);
+			}
+		}
+	}
+	
+	g_free(conv);
+	
+	[self setPreference:[[NSAttributedString stringWithString:@"Adium"] dataRepresentation]
+				 forKey:KEY_ACCOUNT_DISPLAY_NAME
+				  group:GROUP_ACCOUNT_STATUS];
 }
 
 #pragma mark libpurple

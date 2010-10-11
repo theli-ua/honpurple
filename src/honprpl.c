@@ -1251,6 +1251,41 @@ static PurpleCmdRet honprpl_who(PurpleConversation *conv, const gchar *cmd,
 	hon_send_whois(conv->account->gc,user);
 	return PURPLE_CMD_RET_OK;
 }
+static PurpleCmdRet honprpl_join(PurpleConversation *conv, const gchar *cmd,
+								gchar **args, gchar **error, void *userdata)
+{
+	const char *room;
+	const char *password;
+
+	guint32 join_type = GPOINTER_TO_INT(userdata);
+
+	if (join_type == 0)
+	{
+		room = args[0];
+		password = "";
+	}
+	else
+	{
+		room = args[0];
+		password = args[1];
+	}
+
+	GHashTable* table;
+	table = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
+	g_hash_table_insert(table, "room", g_strdup(room));
+	g_hash_table_insert(table, "password", g_strdup(password));
+
+	honprpl_join_chat(conv->account->gc, table);
+
+	return PURPLE_CMD_RET_OK;
+}
+static PurpleCmdRet honprpl_leave(PurpleConversation *conv, const gchar *cmd,
+								gchar **args, gchar **error, void *userdata)
+{
+	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+	honprpl_chat_leave(conv->account->gc, chat->id);
+	return PURPLE_CMD_RET_OK;
+}
 static PurpleCmdRet honprpl_topic(PurpleConversation *conv, const gchar *cmd,
 								gchar **args, gchar **error, void *userdata) 
 {
@@ -1538,6 +1573,56 @@ static void honprpl_init(PurplePlugin *plugin)
 		honprpl_who,
 		_("Request user status"),
 		NULL); 
+
+	/* chat joining/leaving */
+	purple_cmd_register("j",
+		"s",
+		PURPLE_CMD_P_DEFAULT,
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_join,
+		_("Join a new chat"),
+		GINT_TO_POINTER(0));
+	purple_cmd_register("join",
+		"s",
+		PURPLE_CMD_P_DEFAULT,
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_join,
+		_("Join a new chat"),
+		GINT_TO_POINTER(0));
+	purple_cmd_register("j",
+		"ws",
+		PURPLE_CMD_P_DEFAULT,
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_join,
+		_("Join a new chat"),
+		GINT_TO_POINTER(1));
+	purple_cmd_register("join",
+		"ws",
+		PURPLE_CMD_P_DEFAULT,
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_join,
+		_("Join a new chat"),
+		GINT_TO_POINTER(1));
+	purple_cmd_register("l",
+		"",
+		PURPLE_CMD_P_DEFAULT,
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_leave,
+		_("Leave an existing chat"),
+		NULL);
+	purple_cmd_register("leave",
+		"",
+		PURPLE_CMD_P_DEFAULT,
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_leave,
+		_("Leave an existing chat"),
+		NULL);
 
 	/* topic */
 	purple_cmd_register("topic",

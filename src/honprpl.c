@@ -34,11 +34,23 @@ static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 	nick2id_cb_data* cb_data = user_data;
 	deserialized_element* data = NULL;
 	deserialized_element* data2 = NULL;
-	int i;
 
 	if (url_text)
-		for (i = 0;url_text[i] != '\0';i++)
-			((gchar*)url_text)[i] = g_ascii_tolower(url_text[i]);
+	{
+		gchar* ltext,*lname,*foundname;
+		guint len,i;
+		ltext = g_ascii_strdown ((gchar*)url_text,-1);
+		lname = g_ascii_strdown ((gchar*)cb_data->buddy->name,-1);
+		foundname = g_strrstr (ltext,lname);
+		if (foundname)
+		{
+			i = foundname - ltext;
+			len = strlen(lname);
+			memcpy(cb_data->buddy->name,url_text + i , len);
+		}
+		g_free(ltext);
+		g_free(lname);
+	}
 	
 
 	if(
@@ -826,6 +838,7 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 			&& needed_data->type == PHP_ARRAY
 			)
 		{
+			fetch_info_row("nickname","Nickname")
 			fetch_info_row("level","Level")
 			fetch_info_row("acc_exp","Current XP")
 			fetch_info_row("acc_wins","Wins")
@@ -916,7 +929,6 @@ static void honprpl_info_nick2id_error_callback(PurpleBuddy* buddy){
 static void honprpl_get_info(PurpleConnection *gc, const char *username) {
 	PurpleBuddy* OrigBuddy = purple_find_buddy(gc->account,username);
 	PurpleBuddy* buddy = purple_buddy_new(gc->account,username,NULL);
-	int i;
 
 	if(OrigBuddy)
 	{
@@ -925,8 +937,6 @@ static void honprpl_get_info(PurpleConnection *gc, const char *username) {
 	}
 	else
 	{
-		for (i = 0;buddy->name[i] != '\0';i++)
-			((gchar*)buddy->name)[i] = g_ascii_tolower(buddy->name[i]);
 		honprpl_nick2id(buddy,honprpl_info_nick2id_callback,honprpl_info_nick2id_error_callback);
 	}
 }

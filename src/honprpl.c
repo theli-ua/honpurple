@@ -34,6 +34,12 @@ static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 	nick2id_cb_data* cb_data = user_data;
 	deserialized_element* data = NULL;
 	deserialized_element* data2 = NULL;
+	int i;
+
+	if (url_text)
+		for (i = 0;url_text[i] != '\0';i++)
+			((gchar*)url_text)[i] = g_ascii_tolower(url_text[i]);
+	
 
 	if(
 		!url_text
@@ -910,6 +916,7 @@ static void honprpl_info_nick2id_error_callback(PurpleBuddy* buddy){
 static void honprpl_get_info(PurpleConnection *gc, const char *username) {
 	PurpleBuddy* OrigBuddy = purple_find_buddy(gc->account,username);
 	PurpleBuddy* buddy = purple_buddy_new(gc->account,username,NULL);
+	int i;
 
 	if(OrigBuddy)
 	{
@@ -918,6 +925,8 @@ static void honprpl_get_info(PurpleConnection *gc, const char *username) {
 	}
 	else
 	{
+		for (i = 0;buddy->name[i] != '\0';i++)
+			((gchar*)buddy->name)[i] = g_ascii_tolower(buddy->name[i]);
 		honprpl_nick2id(buddy,honprpl_info_nick2id_callback,honprpl_info_nick2id_error_callback);
 	}
 }
@@ -1256,6 +1265,7 @@ static PurpleCmdRet honprpl_join(PurpleConversation *conv, const gchar *cmd,
 {
 	const char *room;
 	const char *password;
+	GHashTable* table;
 
 	guint32 join_type = GPOINTER_TO_INT(userdata);
 
@@ -1269,8 +1279,6 @@ static PurpleCmdRet honprpl_join(PurpleConversation *conv, const gchar *cmd,
 		room = args[0];
 		password = args[1];
 	}
-
-	GHashTable* table;
 	table = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_free);
 	g_hash_table_insert(table, "room", g_strdup(room));
 	g_hash_table_insert(table, "password", g_strdup(password));

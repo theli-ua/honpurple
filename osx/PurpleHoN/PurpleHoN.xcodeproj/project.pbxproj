@@ -275,6 +275,7 @@
 					"\"$(SRCROOT)/../../../adium-1.4/build/Debug\"",
 					"\"$(SRCROOT)/../../../adium-1.4/Frameworks\"",
 				);
+				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_MODEL_TUNING = G5;

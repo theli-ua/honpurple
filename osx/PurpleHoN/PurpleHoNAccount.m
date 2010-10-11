@@ -70,14 +70,12 @@ static PurpleConversation *fakeConversation(PurpleAccount *account)
 		{
 			command = [command substringFromIndex:1];
 		}
-		
-		//command = [command stringByReplacingOccurrencesOfString:@"
-		
+
 		if (command.length)
 		{
 			char *error;
 			PurpleCmdStatus cmdStatus = purple_cmd_do_command(conv, [command UTF8String], [command UTF8String], &error);
-			
+
 			if (cmdStatus == PURPLE_CMD_STATUS_NOT_FOUND)
 			{
 				NSLog(@"Command (%@) not found", command);
@@ -88,9 +86,9 @@ static PurpleConversation *fakeConversation(PurpleAccount *account)
 			}
 		}
 	}
-	
+
 	g_free(conv);
-	
+
 	[self setPreference:[[NSAttributedString stringWithString:@"Adium"] dataRepresentation]
 				 forKey:KEY_ACCOUNT_DISPLAY_NAME
 				  group:GROUP_ACCOUNT_STATUS];
@@ -108,8 +106,21 @@ static PurpleConversation *fakeConversation(PurpleAccount *account)
 	[super configurePurpleAccount];
 
 	purple_account_set_bool(self.purpleAccount, IS_MD5_OPTION, FALSE);
+}
 
-//	[adium.chatController registerChatObserver:self];
+- (NSString *)displayName
+{
+	/*
+	if (account)
+	{
+		PurpleConnection *purpleConnection = purple_account_get_connection(account);
+
+		if (purpleConnection)
+			return [NSString stringWithUTF8String:purple_connection_get_display_name(purpleConnection)];
+	}
+	*/
+
+	return self.formattedUID;
 }
 
 - (BOOL)shouldSendAutoreplyToMessage:(AIContentMessage *)message
@@ -150,10 +161,10 @@ static PurpleConversation *fakeConversation(PurpleAccount *account)
 {
 	const char *statusID = NULL;
 	NSString *statusMessageString = [statusState statusMessageString];
-	
+
 	if (!statusMessageString)
 		statusMessageString = @"";
-	
+
 	switch (statusState.statusType)
 	{
 		case AIAvailableStatusType:
@@ -168,7 +179,7 @@ static PurpleConversation *fakeConversation(PurpleAccount *account)
 			statusID = "offline";
 			break;
 	}
-	
+
 	if (statusID == NULL)
 		statusID = [super purpleStatusIDForStatus:statusState
 										arguments:arguments];

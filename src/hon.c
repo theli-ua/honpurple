@@ -66,33 +66,19 @@ const char *hon_normalize_nick(const PurpleAccount *acct,
 	}
 	return input;
 }
-#if 0
-guint16 read_guint16(int fd){
-	int aaa = 0;
-	guint16 res = 0;
-	recv(fd,&res,2,MSG_WAITALL);
-	return res;
+#if ARM
+inline gchar read_byte(gchar* &buffer)
+{
+	return *x++;
 }
-gchar read_byte(int fd){
-	gchar res;
-	recv(fd,&res,1,MSG_WAITALL);
-	return res;
+#define read_string(x) x ; x+=strlen(x) + 1
+inline guint16 read_guint16(gchar* &buffer)
+{
+	return read_byte(buffer) | (read_byte(buffer) << 8);
 }
-guint32 read_guint32(int fd){
-	guint32 res;
-	recv(fd,&res,4,MSG_WAITALL);
-	return res;
-}
-gchar* read_string(int fd){
-	char c;
-	GString* str = g_string_new(0);
-	recv(fd,&c,1,MSG_WAITALL);
-	while (c != 0)
-	{
-		str = g_string_append_c(str,c);
-		recv(fd,&c,1,MSG_WAITALL);
-	}
-	return g_string_free(str,FALSE);
+inline guint32 read_guint32(gchar* &buffer)
+{
+        return read_guint16(buffer) | (read_guint16(buffer) << 16);
 }
 #else
 #define read_guint32(x) *((guint32*)x) ; x+=4

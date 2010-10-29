@@ -67,19 +67,10 @@ const char *hon_normalize_nick(const PurpleAccount *acct,
 	return input;
 }
 #if ARM
-inline gchar read_byte(gchar* &buffer)
-{
-	return *x++;
-}
+#define read_byte(x) (*x++)
+#define read_guint16(x) (read_byte(x) | (read_byte(x) << 8))
+#define read_guint32(x) (read_guint16(x) | (read_guint16(x) << 16))
 #define read_string(x) x ; x+=strlen(x) + 1
-inline guint16 read_guint16(gchar* &buffer)
-{
-	return read_byte(buffer) | (read_byte(buffer) << 8);
-}
-inline guint32 read_guint32(gchar* &buffer)
-{
-        return read_guint16(buffer) | (read_guint16(buffer) << 16);
-}
 #else
 #define read_guint32(x) *((guint32*)x) ; x+=4
 #define read_guint16(x) *((guint16*)x) ; x+=2

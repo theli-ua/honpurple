@@ -17,7 +17,11 @@ RDEPEND=">=net-im/pidgin-2.6.0
 DEPEND="${RDEPEND}"
 
 S=${WORKDIR}
-
+src_unpack (){
+	unpack ${A}
+	cd ${S}
+        use arm && echo "#define ARM 1" >> src/honprpl.h
+}
 src_compile() {
 	emake || die "emake failed."
 }

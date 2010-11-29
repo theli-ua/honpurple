@@ -624,7 +624,7 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 
 	if(!(url_text)){
 		purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_NETWORK_ERROR,error_message);
-		purple_connection_set_state(gc, PURPLE_DISCONNECTED);
+		//purple_connection_set_state(gc, PURPLE_DISCONNECTED);
 	}
 	else{
 		purple_debug_info(HON_DEBUG_PREFIX, "data from masterserver: \n%s\n",

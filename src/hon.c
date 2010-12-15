@@ -647,12 +647,14 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 	gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S;
 	gchar* clan = NULL; // or channel?
+	gchar* symbol = NULL,*icon = NULL;
 	guint32 clanid;
 	hon_account* hon = gc->proto_data;
 	guint32 status;
 	guint32 flags;
 	guint32 matchid = 0;
 	gchar* raw_gamename = NULL;
+	gchar unknown;
 
 	guint32 id = read_guint32(buffer);
 	status = read_byte(buffer);
@@ -661,6 +663,11 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 	/* TODO: figure this out */
 	clanid = read_guint32(buffer);
 	clan = read_string(buffer); // huh ?
+
+	unknown = read_byte(buffer);
+	symbol = read_string(buffer);
+	icon = read_string(buffer);
+
 	if (status == HON_STATUS_INLOBBY || status == HON_STATUS_INGAME)
 	{
 		server = read_string(buffer);
@@ -674,8 +681,9 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 	}
 	if(!status)
 		status_id = HON_STATUS_OFFLINE_S;
-	purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s matchid:%d\n"
-		,nick,flags,status,gamename,server,clanid,clan,matchid);
+	purple_debug_info(HON_DEBUG_PREFIX, 
+		"status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s matchid:%d\nsymbol:%s,icon:%s\n"
+		,nick,flags,status,gamename,server,clanid,clan,matchid,symbol,icon);
 	if (nick)
 		purple_prpl_got_user_status(gc->account, nick, status_id,
 			HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
@@ -793,15 +801,24 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 		guint32 account_id;
 		guint8 status;
 		const gchar* nickname;
+		gchar unknown,*symbol,*icon;
 		buf = read_string(buffer);
 		nickname = buf;
 		account_id = read_guint32(buffer);
 		status = read_byte(buffer);
 		flags = read_byte(buffer);
-		purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d\n",
-			nickname,account_id,status,flags);
 
-		flags |= GPOINTER_TO_INT(g_hash_table_lookup(ops,GINT_TO_POINTER(account_id)));
+		unknown = read_byte(buffer);
+		symbol = read_string(buffer);
+		icon = read_string(buffer);
+
+		purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d,symb=%s,icon=%s\n",
+			nickname,account_id,status,flags,symbol,icon);
+		
+		
+
+		//flags |= GPOINTER_TO_INT(g_hash_table_lookup(ops,GINT_TO_POINTER(account_id)));
+		flags = GPOINTER_TO_INT(g_hash_table_lookup(ops,GINT_TO_POINTER(account_id)));
 		
 		flags &= 0xF;
 		purple_flags = PURPLE_CBFLAGS_NONE;

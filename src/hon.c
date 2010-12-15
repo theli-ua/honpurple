@@ -899,6 +899,7 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 	guint8 status,flags;
 	const gchar* extra;
 	const gchar* nick;
+    gchar* symbol,*icon;
 	nick =  read_string(buffer);
 	account_id = read_guint32(buffer);
 	chan_id = read_guint32(buffer);
@@ -910,8 +911,13 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 	nick = hon_normalize_nick(gc->account,nick);
 	status = read_byte(buffer);
 	flags = read_byte(buffer);
+    read_byte(buffer);//unknown
+    symbol = read_string(buffer);
+    icon = read_string(buffer);
 
-	flags |= GPOINTER_TO_INT(g_hash_table_lookup(conv->data,GINT_TO_POINTER(account_id)));
+	//flags |= GPOINTER_TO_INT(g_hash_table_lookup(conv->data,GINT_TO_POINTER(account_id)));
+    flags = GPOINTER_TO_INT(g_hash_table_lookup(conv->data,GINT_TO_POINTER(account_id)));
+
 
 	flags &= 0xF;
 

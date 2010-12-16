@@ -647,14 +647,13 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
 void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 	gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S;
 	gchar* clan = NULL; // or channel?
-	gchar* symbol = NULL,*icon = NULL;
+	gchar* shield = NULL,*icon = NULL,*flag = NULL;
 	guint32 clanid;
 	hon_account* hon = gc->proto_data;
 	guint32 status;
 	guint32 flags;
 	guint32 matchid = 0;
 	gchar* raw_gamename = NULL;
-	gchar unknown;
 
 	guint32 id = read_guint32(buffer);
 	status = read_byte(buffer);
@@ -664,8 +663,8 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 	clanid = read_guint32(buffer);
 	clan = read_string(buffer); // huh ?
 
-	unknown = read_byte(buffer);
-	symbol = read_string(buffer);
+	flag = read_string(buffer);
+	shield = read_string(buffer);
 	icon = read_string(buffer);
 
 	if (status == HON_STATUS_INLOBBY || status == HON_STATUS_INGAME)
@@ -682,8 +681,8 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
 	if(!status)
 		status_id = HON_STATUS_OFFLINE_S;
 	purple_debug_info(HON_DEBUG_PREFIX, 
-		"status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s matchid:%d\nsymbol:%s,icon:%s\n"
-		,nick,flags,status,gamename,server,clanid,clan,matchid,symbol,icon);
+		"status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s matchid:%d\nflag:%s,shield:%s,icon:%s\n"
+		,nick,flags,status,gamename,server,clanid,clan,matchid,flag,shield,icon);
 	if (nick)
 		purple_prpl_got_user_status(gc->account, nick, status_id,
 			HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
@@ -801,19 +800,19 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 		guint32 account_id;
 		guint8 status;
 		const gchar* nickname;
-		gchar unknown,*symbol,*icon;
+		gchar *flag,*shield,*icon;
 		buf = read_string(buffer);
 		nickname = buf;
 		account_id = read_guint32(buffer);
 		status = read_byte(buffer);
 		flags = read_byte(buffer);
 
-		unknown = read_byte(buffer);
-		symbol = read_string(buffer);
+		flag = read_string(buffer);
+		shield = read_string(buffer);
 		icon = read_string(buffer);
 
-		purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d,symb=%s,icon=%s\n",
-			nickname,account_id,status,flags,symbol,icon);
+		purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d,flag:%s,shield=%s,icon=%s\n",
+			nickname,account_id,status,flags,flag,shield,icon);
 		
 		
 
@@ -899,7 +898,7 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 	guint8 status,flags;
 	const gchar* extra;
 	const gchar* nick;
-    gchar* symbol,*icon;
+    gchar* shield,*icon,*flag;
 	nick =  read_string(buffer);
 	account_id = read_guint32(buffer);
 	chan_id = read_guint32(buffer);
@@ -911,8 +910,8 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 	nick = hon_normalize_nick(gc->account,nick);
 	status = read_byte(buffer);
 	flags = read_byte(buffer);
-    read_byte(buffer);//unknown
-    symbol = read_string(buffer);
+    flag = read_string(buffer);
+    shield = read_string(buffer);
     icon = read_string(buffer);
 
 	//flags |= GPOINTER_TO_INT(g_hash_table_lookup(conv->data,GINT_TO_POINTER(account_id)));

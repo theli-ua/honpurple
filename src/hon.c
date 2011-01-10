@@ -206,8 +206,10 @@ int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
 	case 0x18:
 		read_string(buffer);
 		break;
-	case 0x68:
-		read_guint32(buffer);
+	case HON_SC_TOTAL_ONLINE:
+		//read_guint32(buffer);
+		packet_length = read_guint32(buffer);
+		purple_debug_info(HON_DEBUG_PREFIX, "total online : %d\n",packet_length);
 		break;
 	case HON_SC_REQUEST_NOTIFICATION/*0xB2*/:
 		hon_parse_request(gc,buffer);

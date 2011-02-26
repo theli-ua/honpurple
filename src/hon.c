@@ -1061,9 +1061,9 @@ void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint16 packet_id){
 gboolean hon_send_pong(PurpleConnection *gc){
 	return hon_send_packet(gc,HON_CS_PONG/*0x02*/,"");
 }
-gboolean hon_send_login(PurpleConnection *gc, const gchar* cookie){
+gboolean hon_send_login(PurpleConnection *gc, const gchar* cookie,guint32 protocolVersion){
 	hon_account* hon = gc->proto_data;
-	return hon_send_packet(gc,HON_CS_AUTH_INFO/*0xFF*/,"isbii",hon->self.account_id,hon->cookie,(char)0,HON_PROTOCOL_VERSION,(guint32)0);
+	return hon_send_packet(gc,HON_CS_AUTH_INFO/*0xFF*/,"isbii",hon->self.account_id,hon->cookie,(char)0,protocolVersion,(guint32)0);
 }
 gboolean hon_send_pm(PurpleConnection* gc,const gchar *username,const gchar* message){
 	return hon_send_packet(gc,HON_CS_PM/*0x1C*/,"ss",username,message);

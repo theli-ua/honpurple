@@ -27,7 +27,7 @@
 
 #define HON_DEBUG_PREFIX "honprpl"
 
-#define DISPLAY_VERSION "0.5.3"
+#define DISPLAY_VERSION "0.5.4"
 #define HON_CLIENT_REQUESTER "client_requester.php"
 #define HON_DEFAULT_MASTER_SERVER "http://masterserver.hon.s2games.com/"
 
@@ -37,6 +37,7 @@
 #define HON_STATS_REQUEST "%s%s?f=get_all_stats&account_id[0]=%d"
 
 #define IS_MD5_OPTION "pass_is_md5"
+#define PROT_VER_STRING "protover"
 
 #define HON_CHAT_PORT 11031
 

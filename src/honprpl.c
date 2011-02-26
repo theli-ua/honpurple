@@ -576,9 +576,9 @@ gboolean timeout_handler(gpointer data){
 }
 static void honprpl_login_callback(gpointer data, gint source, const gchar *error_message)
 {
-
-	PurpleConnection *gc = data;
-	hon_account *hon = gc->proto_data;
+    PurpleConnection *gc = data;
+	PurpleAccount* acct = purple_connection_get_account(gc);
+    hon_account *hon = gc->proto_data;
 	int on = 1;
 	if (source < 0) {
 		gchar *tmp = g_strdup_printf(_("Unable to connect: %s"),
@@ -593,7 +593,7 @@ static void honprpl_login_callback(gpointer data, gint source, const gchar *erro
 
 	setsockopt(source,IPPROTO_TCP, TCP_NODELAY, &on, sizeof (on));
 
-	if(hon_send_login(gc,hon->cookie)){
+	if(hon_send_login(gc,hon->cookie,purple_account_get_int(acct,PROT_VER_STRING,HON_PROTOCOL_VERSION))){
 		purple_connection_update_progress(gc, _("Authenticating"),
 			2,   /* which connection step this is */
 			4);  /* total number of steps */
@@ -1503,7 +1503,7 @@ static PurplePluginProtocolInfo prpl_info =
 };
 static void honprpl_init(PurplePlugin *plugin)
 {
-	PurpleAccountOption *option_store_md5;
+	PurpleAccountOption *option_store_md5,*protocol_version;
 	PurpleAccountOption *option = purple_account_option_string_new(
 		_("HoN masterserver URL"),      /* text shown to user */
 		"masterserver",                /* pref name */
@@ -1516,8 +1516,11 @@ static void honprpl_init(PurplePlugin *plugin)
 		IS_MD5_OPTION,                /* pref name */
 		FALSE
 		);
+    protocol_version = purple_account_option_int_new(_("Protocol version"),
+            PROT_VER_STRING,HON_PROTOCOL_VERSION);
 	prpl_info.protocol_options = g_list_append(NULL, option);
 	prpl_info.protocol_options = g_list_append(prpl_info.protocol_options, option_store_md5);
+    prpl_info.protocol_options = g_list_append(prpl_info.protocol_options,protocol_version);
 
 	/* register whisper chat command */
 	purple_cmd_register("whisper",

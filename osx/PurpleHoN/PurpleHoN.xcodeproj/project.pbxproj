@@ -31,15 +31,15 @@
 		00292E4312620DF800BEA057 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		00292E4512620DF800BEA057 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		00292E4712620DF800BEA057 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
-		00292F9212620E3A00BEA057 /* Adium.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Adium.framework; path = "/Users/dopefish/Builds/adium-1.4/build/Debug/Adium.framework"; sourceTree = "<absolute>"; };
-		00292F9412620E3A00BEA057 /* AdiumLibpurple.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdiumLibpurple.framework; path = "/Users/dopefish/Builds/adium-1.4/build/Debug/AdiumLibpurple.framework"; sourceTree = "<absolute>"; };
-		00292F9612620E3A00BEA057 /* AIUtilities.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AIUtilities.framework; path = "/Users/dopefish/Builds/adium-1.4/build/Debug/AIUtilities.framework"; sourceTree = "<absolute>"; };
+		00292F9212620E3A00BEA057 /* Adium.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Adium.framework; path = "../../../adium-1.4/build/Debug/Adium.framework"; sourceTree = SOURCE_ROOT; };
+		00292F9412620E3A00BEA057 /* AdiumLibpurple.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdiumLibpurple.framework; path = "../../../adium-1.4/build/Debug/AdiumLibpurple.framework"; sourceTree = SOURCE_ROOT; };
+		00292F9612620E3A00BEA057 /* AIUtilities.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AIUtilities.framework; path = "../../../adium-1.4/build/Debug/AIUtilities.framework"; sourceTree = SOURCE_ROOT; };
 		00292F9812620E4100BEA057 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
-		00292F9C12620E5B00BEA057 /* libglib.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libglib.framework; path = "/Users/dopefish/Builds/adium-1.4/Frameworks/libglib.framework"; sourceTree = "<absolute>"; };
-		00292F9E12620E5B00BEA057 /* libgmodule.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libgmodule.framework; path = "/Users/dopefish/Builds/adium-1.4/Frameworks/libgmodule.framework"; sourceTree = "<absolute>"; };
-		00292FA012620E5B00BEA057 /* libgobject.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libgobject.framework; path = "/Users/dopefish/Builds/adium-1.4/Frameworks/libgobject.framework"; sourceTree = "<absolute>"; };
-		00292FA212620E5B00BEA057 /* libgthread.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libgthread.framework; path = "/Users/dopefish/Builds/adium-1.4/Frameworks/libgthread.framework"; sourceTree = "<absolute>"; };
-		00292FA412620E5B00BEA057 /* libintl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libintl.framework; path = "/Users/dopefish/Builds/adium-1.4/Frameworks/libintl.framework"; sourceTree = "<absolute>"; };
+		00292F9C12620E5B00BEA057 /* libglib.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libglib.framework; path = "../../../adium-1.4/Frameworks/libglib.framework"; sourceTree = SOURCE_ROOT; };
+		00292F9E12620E5B00BEA057 /* libgmodule.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libgmodule.framework; path = "../../../adium-1.4/Frameworks/libgmodule.framework"; sourceTree = SOURCE_ROOT; };
+		00292FA012620E5B00BEA057 /* libgobject.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libgobject.framework; path = "../../../adium-1.4/Frameworks/libgobject.framework"; sourceTree = SOURCE_ROOT; };
+		00292FA212620E5B00BEA057 /* libgthread.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libgthread.framework; path = "../../../adium-1.4/Frameworks/libgthread.framework"; sourceTree = SOURCE_ROOT; };
+		00292FA412620E5B00BEA057 /* libintl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = libintl.framework; path = "../../../adium-1.4/Frameworks/libintl.framework"; sourceTree = SOURCE_ROOT; };
 		00292FAD12620F7000BEA057 /* hon-small.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "hon-small.png"; sourceTree = "<group>"; };
 		00292FAE12620F7000BEA057 /* hon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = hon.png; sourceTree = "<group>"; };
 		00292FB31262113D00BEA057 /* hon.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hon.c; path = ../../src/hon.c; sourceTree = SOURCE_ROOT; };
@@ -206,7 +206,6 @@
 			};
 			buildConfigurationList = 1DEB911E08733D790010E9CD /* Build configuration list for PBXProject "PurpleHoN" */;
 			compatibilityVersion = "Xcode 3.1";
-			developmentRegion = English;
 			hasScannedForEncodings = 1;
 			knownRegions = (
 				English,

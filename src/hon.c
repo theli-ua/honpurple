@@ -138,7 +138,7 @@ int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
 		hon_parse_pm_failed(gc,buffer);
 		break;
 	case HON_SC_WHISPER_BUDDIES/*0x20*/:
-		hon_parse_pm_whisper(gc,buffer,TRUE);
+		hon_parse_pm_whisper(gc,buffer,3);
 		break;
 	case HON_SC_MAX_CHANNELS/*0x21*/:
 		hon_parse_max_channels(gc,buffer);
@@ -723,7 +723,17 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint16 is_whisper)
 	}
 	receive_flags = PURPLE_MESSAGE_RECV;
 	if (is_whisper)
+	{
+#ifndef MINBIF
+		gchar* tmp = message;
+		if (is_whisper > 1)
+			message = g_strdup_printf("[%s] %s" , _("WHISPERED TO BUDDIES"),message);
+		else
+			message = g_strdup_printf("[%s] %s" , _("WHISPER"),message);
+		g_free(tmp);
+#endif
 		receive_flags |= PURPLE_MESSAGE_WHISPER;
+	}
 	serv_got_im(gc, from_username, message, receive_flags, time(NULL));
 	g_free(message);
 }
@@ -970,6 +980,11 @@ void hon_parse_clan_message(PurpleConnection *gc,gchar* buffer){
 	g_string_free(clan_chat_name,TRUE);
 	if (clanConv)
 	{
+#ifndef MINBIF
+		gchar* tmp = message;
+		message = g_strdup_printf("[%s] %s" , _("WHISPER"),message);
+		g_free(tmp);
+#endif
 		user = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(buddy_id));
 		purple_conv_chat_write(PURPLE_CONV_CHAT(clanConv), user,message, PURPLE_MESSAGE_WHISPER, time(NULL));
 	}

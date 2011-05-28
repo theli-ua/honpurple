@@ -67,7 +67,8 @@ void hon_parse_request(PurpleConnection *gc,gchar* buffer);
 
 
 gboolean hon_send_pong(PurpleConnection *gc);
-gboolean hon_send_login(PurpleConnection *gc,const gchar* cookie,guint32 protocolVersion);
+gboolean hon_send_login(PurpleConnection *gc, const gchar* cookie,\
+	const gchar* ip,const gchar* auth_token,guint32 protocolVersion);
 gboolean hon_send_pm(PurpleConnection* gc,const gchar *username,const gchar* message);
 gboolean hon_send_join_chat(PurpleConnection* gc,const gchar *room);
 gboolean hon_send_leave_chat(PurpleConnection* gc,gchar* name);

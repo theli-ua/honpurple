@@ -27,7 +27,7 @@
 
 #define HON_DEBUG_PREFIX "honprpl"
 
-#define DISPLAY_VERSION "0.5.5"
+#define DISPLAY_VERSION "0.5.6"
 #define HON_CLIENT_REQUESTER "client_requester.php"
 #define HON_DEFAULT_MASTER_SERVER "http://masterserver.hon.s2games.com/"
 
@@ -71,6 +71,8 @@ typedef struct {
 	GHashTable* clan_info;
 	GHashTable* id2nick;
 	gchar* cookie;
+	gchar* ip;
+	gchar* auth;
 	user_info self;
 	PurpleRoomlist* roomlist;
 	int fd;

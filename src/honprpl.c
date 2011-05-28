@@ -593,7 +593,9 @@ static void honprpl_login_callback(gpointer data, gint source, const gchar *erro
 
 	setsockopt(source,IPPROTO_TCP, TCP_NODELAY, &on, sizeof (on));
 
-	if(hon_send_login(gc,hon->cookie,purple_account_get_int(acct,PROT_VER_STRING,HON_PROTOCOL_VERSION))){
+	if(hon_send_login(gc,hon->cookie,hon->ip,hon->auth,
+		purple_account_get_int(acct,PROT_VER_STRING,HON_PROTOCOL_VERSION)))
+	{
 		purple_connection_update_progress(gc, _("Authenticating"),
 			2,   /* which connection step this is */
 			4);  /* total number of steps */
@@ -654,6 +656,8 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 				gchar* account_id = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"account_id")))->u.string->str;
 				/* TODO: check for errors */
 				hon->cookie = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"cookie")))->u.string->str;
+				hon->ip = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"ip")))->u.string->str;
+				hon->auth = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"auth_hash")))->u.string->str;
 				hon->self.nickname = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"nickname")))->u.string->str;
 				hon->self.account_id = atoi(((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"account_id")))->u.string->str);
 				

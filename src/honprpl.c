@@ -116,7 +116,7 @@ static void honprpl_update_buddies(PurpleConnection* gc){
 	while (g_hash_table_iter_next(&iter,NULL,(gpointer*)&buddy_data))
 	{
 		deserialized_element* buddyname = g_hash_table_lookup(buddy_data->u.array,"nickname");
-		if (buddyname)
+		if (buddyname && buddyname->type != 'N')
 		{
 			PurpleBuddy* buddy;
 			guint32 id = atoi(((deserialized_element*)(g_hash_table_lookup(buddy_data->u.array,"buddy_id")))->u.string->str);
@@ -172,7 +172,7 @@ static void honprpl_update_clanmates(PurpleConnection* gc){
 	while (g_hash_table_iter_next(&iter,(gpointer*)&key,(gpointer*)&buddy_data))
 	{
 		deserialized_element* buddyname = g_hash_table_lookup(buddy_data->u.array,"nickname");
-		if (buddyname)
+		if (buddyname && buddyname->type != 'N')
 		{
 			PurpleBuddy* buddy;
 			guint32 id = atoi(key);

@@ -653,7 +653,14 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 			}
 			else{
 				deserialized_element* tmp;
-				gchar* account_id = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"account_id")))->u.string->str;
+				gchar* account_id;
+				if ( ! g_hash_table_lookup(account_data->u.array,"account_id") )
+				{
+					destroy_php_element(account_data);
+					purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_OTHER_ERROR,_("Bad data received from server"));					
+					return;
+				}
+				account_id = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"account_id")))->u.string->str;
 				/* TODO: check for errors */
 				hon->cookie = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"cookie")))->u.string->str;
 				hon->ip = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"ip")))->u.string->str;

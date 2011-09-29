@@ -23,6 +23,7 @@ src_unpack (){
         use arm && echo "#define ARM 1" >> src/honprpl.h
 }
 src_compile() {
+	emake clean
 	emake || die "emake failed."
 }
 

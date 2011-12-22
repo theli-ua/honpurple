@@ -29,3 +29,22 @@ length:18
 data:
  0000: 96 32 55 00 5b 48 5d 52 6f 72 64 61 72 6f 63 00 .2U.[H]Rordaroc.
 
+
+MM Status?
+(10:54:15) honprpl: unknown packet:
+id:D07(3335)
+length:73
+data:
+ 0000: 01 63 61 6c 64 61 76 61 72 7c 67 72 69 6d 6d 73 .caldavar|grimms
+ 0010: 63 72 6f 73 73 69 6e 67 00 31 7c 32 00 61 70 7c crossing.1|2.ap|
+ 0020: 73 64 7c 62 64 7c 62 70 7c 61 72 00 55 53 57 7c sd|bd|bp|ar.USW|
+ 0030: 55 53 45 7c 45 55 00 00 55 53 00 0a 00 0a 02 0a USE|EU..US......
+ 0040: 04 02 03 03 0a 07 08                            .......
+
+HonTV status?
+(10:54:15) honprpl: unknown packet:
+id:6A(106)
+length:20
+data:
+ 0000: 41 6e 67 72 79 54 65 73 74 69 65 2c 48 34 6e 6e AngryTestie,H4nn
+ 0010: 31 00        

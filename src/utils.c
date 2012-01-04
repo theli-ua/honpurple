@@ -201,7 +201,7 @@ gchar* hon2html(const gchar* input){
 		if (buffer < end)
 		{
 			opened |= 2;
-			if(buffer[1] == 'w' || buffer[1] == 'W')
+			if(buffer[1] == 'w' || buffer[1] == 'W' || buffer[1] == '*')
 			{
 #if 0
 				if (opened == 3)decoded = g_string_append(decoded,"</FONT>");
@@ -269,6 +269,10 @@ gchar* hon2html(const gchar* input){
 					s2_colors[buffer[3] - '0']);
 				buffer += 4;
 			}
+			else if (buffer[1] == ';' || buffer[1] == ':')
+            {
+                buffer += 2;
+            }
 			else
 			{
 				decoded = g_string_append_c(decoded,*buffer++);

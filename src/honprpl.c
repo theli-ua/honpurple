@@ -471,12 +471,15 @@ static GHashTable *honprpl_chat_info_defaults(PurpleConnection *gc,
     call for handling in read_cb 
 */
 static int honprpl_read_recv(PurpleConnection *gc, int sock) {
-	guint16 packet_length = 0,len = 0;
+	guint16 packet_length = 0;
+    gint32 len = 0;
 	hon_account* hon = gc->proto_data;
 	gchar* buff = NULL;
 	if (hon->got_length == 0)
 	{
 		len += read(sock,&packet_length,2);
+        if (len <= 0)
+            return 0;
 		packet_length = ((packet_length & 0xFF) << 8) | ((packet_length & 0xFF00) >> 8);
 		hon->databuff = g_byte_array_new();
 		hon->got_length = packet_length;

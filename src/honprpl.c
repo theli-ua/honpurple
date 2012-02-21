@@ -1374,8 +1374,8 @@ static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 {
 	const char* user = args[0];
 	hon_account* hon = conv->account->gc->proto_data;
-	guint32 kicked_id = 0,id = 0;
-	guint32 packetId = GPOINTER_TO_INT(userdata);
+	gulong kicked_id = 0,id = 0;
+	guint packetId = GPOINTER_TO_UINT(userdata);
 	gchar* name;
 	GHashTableIter iter;
 	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);

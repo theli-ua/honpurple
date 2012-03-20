@@ -1,3 +1,10 @@
+clan officer promotion
+(18:52:13) honprpl: unknown packet:
+id:50(80)
+length:11
+data:
+ 0000: ed 3f 01 00 02 e3 40 5d 00                      .?....@].
+
 Joined clan?
 (15:30:00) honprpl: unknown packet:
 id:4E(78)

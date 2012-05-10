@@ -201,7 +201,8 @@ int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
         hon_parse_join_channel_password(gc,buffer);
         break;
     case HON_SC_CHANNEL_EMOTE/*0x65*/:
-        hon_parse_emote(gc,buffer);
+    case HON_SC_CHANNEL_ROLL/*0x64*/:
+        hon_parse_emote_roll(gc,buffer,packet_id);
         break;
     case 0x18:
         read_string(buffer);
@@ -875,7 +876,7 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
     purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), hon->self.nickname, NULL,purple_flags , FALSE);
 }
 
-void hon_parse_emote(PurpleConnection *gc,gchar* buffer){
+void hon_parse_emote_roll(PurpleConnection *gc,gchar* buffer, guint16 packet_id){
     hon_account *hon = gc->proto_data;
     guint32 account_id;
     guint32 chan_id;
@@ -885,6 +886,12 @@ void hon_parse_emote(PurpleConnection *gc,gchar* buffer){
     account_id = read_guint32(buffer);
     chan_id = read_guint32(buffer);
     msg = hon2html(buffer);
+    gchar* tmp = msg;
+    if (packet_id == HON_SC_CHANNEL_EMOTE)
+        msg = g_strdup_printf("[%s] %s" , _("EMOTE"),msg);
+    else
+        msg = g_strdup_printf("[%s] %s" , _("ROLL"),msg);
+    g_free(tmp);
     chat = purple_find_chat(gc,chan_id);
     sender = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id));
     serv_got_chat_in(gc,chan_id,sender ,PURPLE_MESSAGE_RECV,msg,time(NULL));
@@ -1155,6 +1162,9 @@ gboolean hon_send_channel_auth_list(PurpleConnection* gc,guint32 chatid){
 }
 gboolean hon_send_emote(PurpleConnection* gc,guint32 chatid,const gchar* string){
     return hon_send_packet(gc,HON_CS_CHANNEL_EMOTE,"si",string,chatid);
+}
+gboolean hon_send_roll(PurpleConnection* gc,guint32 chatid,const gchar* string){
+    return hon_send_packet(gc,HON_CS_CHANNEL_ROLL,"si",string,chatid);
 }
 gboolean hon_send_join_game(PurpleConnection* gc,const gchar* status,guint32 matchid,gchar* server){
     return hon_send_packet(gc,HON_CS_JOIN_GAME,"sis",status,matchid,server);

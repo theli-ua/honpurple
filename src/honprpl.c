@@ -1334,6 +1334,15 @@ static PurpleCmdRet honprpl_channel_emote(PurpleConversation *conv, const gchar 
 	purple_conv_chat_write(chat,hon->self.nickname,args[0],PURPLE_MESSAGE_SEND,time(NULL));
 	return PURPLE_CMD_RET_OK;
 }
+static PurpleCmdRet honprpl_channel_roll(PurpleConversation *conv, const gchar *cmd,
+								  gchar **args, gchar **error, void *userdata) 
+{
+	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+	hon_account* hon = conv->account->gc->proto_data;
+	hon_send_roll(conv->account->gc,chat->id,args[0]);
+	purple_conv_chat_write(chat,hon->self.nickname,args[0],PURPLE_MESSAGE_SEND,time(NULL));
+	return PURPLE_CMD_RET_OK;
+}
 static PurpleCmdRet honprpl_whisper_buddies(PurpleConversation *conv, const gchar *cmd,
 										  gchar **args, gchar **error, void *userdata) 
 {
@@ -1795,6 +1804,14 @@ static void honprpl_init(PurplePlugin *plugin)
 		_("auth enable\nauth disable\nauth add\nauth delete\nauth list"),
 		GINT_TO_POINTER(HON_CS_CHANNEL_UNBAN)); 
 	
+	purple_cmd_register("r",
+		"s",                  /* args: string */
+		PURPLE_CMD_P_DEFAULT,  /* priority */
+		PURPLE_CMD_FLAG_CHAT,
+		"prpl-hon",
+		honprpl_channel_roll ,
+		_("roll string to send roll string :-/"),
+		NULL); 
 	purple_cmd_register("e",
 		"s",                  /* args: string */
 		PURPLE_CMD_P_DEFAULT,  /* priority */

@@ -54,6 +54,7 @@
 #ifndef _
 #	define _(x) (x)
 #endif
+void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* icon, guint32 accountid);
 
 typedef struct {
 	gchar* nickname;

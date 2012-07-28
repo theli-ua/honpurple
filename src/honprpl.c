@@ -1439,6 +1439,44 @@ static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 	return PURPLE_CMD_RET_OK;
 }
 
+static void
+honpurple_get_icon_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message)
+{
+	PurpleBuddy *buddy = user_data;
+    if (len > 0 )
+	    purple_buddy_icons_set_for_user(buddy->account, buddy->name, g_memdup(url_text, len), len, buddy->proto_data);
+        purple_debug_info(HON_DEBUG_PREFIX, 
+            "asdfasdf ... %s \n",buddy->proto_data);
+    g_free(buddy->proto_data);
+    buddy->proto_data = NULL;
+}
+
+void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* icon, guint32 accountid)
+{
+    PurpleBuddy *buddy = purple_find_buddy(account, nick);
+    const gchar *old_avatar;
+	gchar* url;
+    if (!buddy)
+        return;
+    old_avatar = purple_buddy_icons_get_checksum_for_user(buddy);
+    if (old_avatar && g_str_equal(icon, old_avatar))
+    {
+        purple_debug_info(HON_DEBUG_PREFIX, 
+            "no need to update icon ...\n");
+        return;
+    }
+    purple_debug_info(HON_DEBUG_PREFIX, 
+        "updating icon for %s, new icon = %s, old icon = \n",nick,icon,old_avatar);
+	url = g_strdup_printf("http://www.heroesofnewerth.com/getAvatar.php?id=%d",accountid);
+    buddy->proto_data = g_strdup(icon);
+#if PURPLE_VERSION_CHECK(3, 0, 0)
+    //TODO
+#else
+    purple_util_fetch_url_request(url, TRUE, NULL, FALSE, NULL, FALSE, honpurple_get_icon_cb, buddy);
+#endif
+	g_free(url);
+}
+
 
 /*
 * prpl stuff. see prpl.h for more information.
@@ -1450,13 +1488,13 @@ static PurplePluginProtocolInfo prpl_info =
 	NULL,               /* user_splits, initialized in honprpl_init() */
 	NULL,               /* protocol_options, initialized in honprpl_init() */
 	{   /* icon_spec, a PurpleBuddyIconSpec */
-		"",                   /* format */
+		"png",                   /* format */
 			0,                               /* min_width */
 			0,                               /* min_height */
-			0,                             /* max_width */
-			0,                             /* max_height */
+			128,                             /* max_width */
+			128,                             /* max_height */
 			0,                           /* max_filesize */
-			0,       /* scale_rules */
+			PURPLE_ICON_SCALE_DISPLAY,       /* scale_rules */
 	},
 	honprpl_list_icon,                  /* list_icon */
 	honprpl_list_emblem,                                /* list_emblem */
@@ -1885,7 +1923,7 @@ static PurplePluginInfo info =
 	N_("Heroes of Newerth Protocol Plugin"),                              /* summary */
 	N_("Protocol Plugin for Heroes of Newerth chat server"),                              /* description */
 	NULL,                                                    /* author */
-	"http://theli.is-a-geek.org/",                                          /* homepage */
+	"http://code.google.com/p/honpurple/",                                          /* homepage */
 	NULL,                                                    /* load */
 	NULL,                                                    /* unload */
 	honprpl_destroy,                                        /* destroy */

@@ -687,6 +687,8 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
     purple_debug_info(HON_DEBUG_PREFIX, 
         "status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s matchid:%d\nflag:%s,shield:%s,icon:%s\n"
         ,nick,flags,status,gamename,server,clanid,clan,matchid,flag,shield,icon);
+    if (status == HON_STATUS_ONLINE)
+        honpurple_get_icon(gc->account, nick, icon,id);
     if (nick)
         purple_prpl_got_user_status(gc->account, nick, status_id,
             HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
@@ -827,6 +829,7 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 
         purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d,flag:%s,shield=%s,icon=%s\n",
             nickname,account_id,status,flags,flag,shield,icon);
+        honpurple_get_icon(gc->account,nickname,icon,account_id);
         
         
 

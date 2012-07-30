@@ -1118,6 +1118,9 @@ gboolean hon_send_whisper(PurpleConnection* gc,const gchar *username,const gchar
 gboolean hon_send_clan_invite(PurpleConnection* gc,const gchar *username){
     return hon_send_packet(gc,HON_CS_CLAN_ADD_MEMBER/*0x47*/,"s",username);
 }
+gboolean hon_send_clan_remove(PurpleConnection* gc,const guint32 userid){
+    return hon_send_packet(gc,HON_CS_CLAN_REMOVE_MEMBER,"i",userid);
+}
 gboolean hon_send_clan_message(PurpleConnection* gc,const gchar *message){
     return hon_send_packet(gc,HON_CS_CLAN_MESSAGE/*0x13*/,"s",message);
 }

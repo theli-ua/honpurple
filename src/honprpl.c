@@ -718,7 +718,7 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 
  				if (purple_proxy_connect(gc, gc->account, 
  				                         ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"chat_url")))->u.string->str,
- 				                         HON_CHAT_PORT,
+ 				                         g_ascii_strtoull(((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"chat_port")))->u.string->str,NULL,10),
  					honprpl_login_callback, gc) == NULL)
 				{
 					purple_connection_error_reason (gc,
@@ -1265,6 +1265,24 @@ static PurpleCmdRet honprpl_clan_commands(PurpleConversation *conv, const gchar 
 		hon_send_clan_message(gc,args[1]);
 		return PURPLE_CMD_RET_OK;
 	}
+	else if (!g_strcmp0(command,"remove"))
+    {
+        GHashTableIter iter;
+        gulong kicked_id = 0,id = 0;
+        gchar *user = args[1],*name = NULL;
+        g_hash_table_iter_init(&iter,hon->id2nick);
+        while (kicked_id == 0 && g_hash_table_iter_next(&iter,(gpointer *)&id,(gpointer *)&name))
+        {
+            if (strcmp(name,user)==0)
+            {
+                kicked_id = id;
+            }
+        }
+		purple_debug_info(HON_DEBUG_PREFIX, "Found Id:%d to remove %s from clan\n",kicked_id,user);
+        if (kicked_id != 0)
+            hon_send_clan_remove(gc,kicked_id);
+		return PURPLE_CMD_RET_OK;
+    }
 
 	*error = g_strdup(_("Unknown clan command"));
 	return PURPLE_CMD_RET_FAILED;

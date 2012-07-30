@@ -76,6 +76,7 @@ gboolean hon_send_chat_message(PurpleConnection *gc, guint32 id, const char *mes
 gboolean hon_send_chat_topic(PurpleConnection *gc, guint32 id, const char *topic);
 gboolean hon_send_whisper(PurpleConnection* gc,const gchar *username,const gchar* message);
 gboolean hon_send_clan_invite(PurpleConnection* gc,const gchar *username);
+gboolean hon_send_clan_remove(PurpleConnection* gc,const guint32 userid);
 gboolean hon_send_clan_message(PurpleConnection* gc,const gchar *message);
 gboolean hon_send_whois(PurpleConnection* gc,const gchar *username);
 gboolean hon_send_add_buddy_notification(PurpleConnection* gc,guint32 selfid, gchar* nick);

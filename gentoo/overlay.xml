@@ -9,6 +9,6 @@
     <email>theli.ua@gmail.com</email>
     <name>HoNpurple</name>
   </owner>
-  <source type="git">https://github.com/theli-ua/honpurple.git/gentoo/overlay</source>
+  <source type="svn">http://svn.github.com/theli-ua/honpurple.git/gentoo/overlay</source>
 </repo>
 </repositories>

@@ -4,11 +4,11 @@
 <repo quality="experimental" status="unofficial">
   <name>honpurple</name>
   <description>Contains ebuilds for honpurple.</description>
-  <homepage>http://code.google.com/p/honpurple/</homepage>
+  <homepage>https://github.com/theli-ua/honpurple</homepage>
   <owner type="project">
     <email>theli.ua@gmail.com</email>
     <name>HoNpurple</name>
   </owner>
-  <source type="svn">http://honpurple.googlecode.com/svn/trunk/gentoo/overlay</source>
+  <source type="svn">https://github.com/theli-ua/honpurple.git/gentoo/overlay</source>
 </repo>
 </repositories>

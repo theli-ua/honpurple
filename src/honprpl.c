@@ -1468,7 +1468,7 @@ honpurple_get_icon_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, cons
     g_free(buddy->proto_data);
     buddy->proto_data = NULL;
 }
-
+#if 0
 void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* icon, guint32 accountid)
 {
     PurpleBuddy *buddy = purple_find_buddy(account, nick);
@@ -1494,6 +1494,7 @@ void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* i
 #endif
 	g_free(url);
 }
+#endif
 
 
 /*

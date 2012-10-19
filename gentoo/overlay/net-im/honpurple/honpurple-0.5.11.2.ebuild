@@ -5,7 +5,7 @@ EAPI=2
 inherit eutils
 DESCRIPTION="libpurple protocol plugin for Heroes of Newerth Chat Server"
 HOMEPAGE="http://code.google.com/p/honpurple/"
-SRC_URI="http://honpurple.googlecode.com/files/${P}.tar.bz2"
+SRC_URI="https://github.com/downloads/theli-ua/honpurple/${P}.tar.bz2"
 
 LICENSE="GPL-3"
 SLOT="0"

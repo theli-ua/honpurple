@@ -3,12 +3,14 @@
 #
 # Description: Makefile for win32 (mingw) version of libnull
 #
+CC=/usr/bin/i686-pc-mingw32-gcc 
+CXX=/usr/bin/i686-pc-mingw32-g++
 
 #PIDGIN_TREE_TOP := /cygdrive/d/MyProjects/pidgin/pidgin-2.6.2
 CFLAGS += -DPURPLE_PLUGINS
-PIDGIN_TREE_TOP := /usr/mingw32/local/pidgin-2.7.1/
-GTK_TOP := /usr/mingw32/
-LIBXML2_TOP := /usr/mingw32/
+PIDGIN_TREE_TOP := /usr/i686-pc-mingw32/local/pidgin-2.7.1/
+GTK_TOP := /usr/i686-pc-mingw32/
+LIBXML2_TOP := /usr/i686-pc-mingw32/
 include $(PIDGIN_TREE_TOP)/libpurple/win32/global.mak
 
 TARGET = libhon

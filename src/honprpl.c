@@ -1506,13 +1506,26 @@ static PurplePluginProtocolInfo prpl_info =
 	NULL,               /* user_splits, initialized in honprpl_init() */
 	NULL,               /* protocol_options, initialized in honprpl_init() */
 	{   /* icon_spec, a PurpleBuddyIconSpec */
+#if 0
 		"png",                   /* format */
+#else
+		0,                   /* format */
+#endif
 			0,                               /* min_width */
 			0,                               /* min_height */
+#if 0
 			128,                             /* max_width */
 			128,                             /* max_height */
+#else
+			0,                             /* max_width */
+			0,                             /* max_height */
+#endif
 			0,                           /* max_filesize */
+#if 0
 			PURPLE_ICON_SCALE_DISPLAY,       /* scale_rules */
+#else
+            0,       /* scale_rules */
+#endif
 	},
 	honprpl_list_icon,                  /* list_icon */
 	honprpl_list_emblem,                                /* list_emblem */

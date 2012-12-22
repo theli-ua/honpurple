@@ -21,6 +21,7 @@
 #include "util.h"
 #include "version.h"
 #include "packet_id.h"
+#include "srp.h"
 
 #ifndef _WIN32
 #include <sys/types.h>
@@ -29,6 +30,8 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 #endif
+
+#include <openssl/bn.h>
 
 static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	nick2id_cb_data* cb_data = user_data;
@@ -736,20 +739,140 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 	hon->account_data = account_data;
 }
 
-static void honprpl_login(PurpleAccount *acct)
-{
-	PurpleUtilFetchUrlData *url_data;
-	PurpleConnection *gc = purple_account_get_connection(acct);
-	hon_account* honacc;
-	GString* request_url = g_string_new(NULL);
-	GString* password_md5;
+static void start_srp_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
+	srp_auth_cb_data *srp = user_data;
+    PurpleConnection *gc = srp->gc;
+    deserialized_element *ms_data;
+	hon_account* hon = gc->proto_data;
+    PurpleAccount * acct = purple_connection_get_account(gc);
 
-	if ( !purple_account_get_bool(acct,IS_MD5_OPTION,TRUE)){
-		password_md5 = get_md5_string(acct->password);
+	if(!(url_text)){
+		purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_NETWORK_ERROR,error_message);
 	}
 	else
-		password_md5 = g_string_new(acct->password);
+    {
+		purple_debug_info(HON_DEBUG_PREFIX, "data from masterserver: \n%s\n",
+		url_text);
 
+		ms_data = deserialize_php(&url_text,strlen(url_text));
+		if (ms_data->type != PHP_ARRAY)
+		{
+			purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_OTHER_ERROR,_("Bad data received from server"));
+		}
+		else{
+			deserialized_element* res = g_hash_table_lookup(ms_data->u.array,"0");
+			if (!res || !res->u.int_val)
+			{
+				res = g_hash_table_lookup(ms_data->u.array,"auth");
+				if (res && res->type == PHP_STRING)
+				{
+					purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_OTHER_ERROR,res->u.string->str);
+				}
+				else
+					purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_OTHER_ERROR,_("Unknown error"));
+			}
+			else{
+				deserialized_element* tmp;
+				gchar *salt2, *B, *salt;
+				if ( ! g_hash_table_lookup(ms_data->u.array,"salt") )
+				{
+					destroy_php_element(ms_data);
+                    g_string_free(srp->password_md5, TRUE);
+                    free(srp);
+					purple_connection_error_reason(gc,PURPLE_CONNECTION_ERROR_OTHER_ERROR,_("Bad data received from server"));					
+					return;
+				}
+                else
+                {
+                    gchar   *ck, *ck2;
+                    const unsigned char * bytes_M = 0;
+                    GString *tmp = g_string_new(NULL);
+
+				    salt2 = ((deserialized_element*)(g_hash_table_lookup(ms_data->u.array,"salt2")))->u.string->str;
+				    B = ((deserialized_element*)(g_hash_table_lookup(ms_data->u.array,"B")))->u.string->str;
+				    salt = ((deserialized_element*)(g_hash_table_lookup(ms_data->u.array,"salt")))->u.string->str;
+
+                    g_string_printf(tmp,"%s%s%s", srp->password_md5->str, salt2, S2_SRP_MAGIC1);
+                    ck = g_compute_checksum_for_data( G_CHECKSUM_MD5, tmp->str, -1 );
+                    g_string_printf(tmp,"%s%s", ck, S2_SRP_MAGIC2);
+                    g_free(ck);
+                    ck = g_compute_checksum_for_data( G_CHECKSUM_SHA256, tmp->str, -1);
+                    srp_user_set_password(srp->usr,ck);
+                    g_free(ck);
+
+                    ck = srp_user_process_challenge_hex(srp->usr, salt, B);
+
+                    ck2 = g_utf8_strdown(ck,-1);
+
+
+                    g_string_printf(tmp,"%s%s?f=srpAuth&login=%s&proof=%s",
+                        purple_account_get_string(acct, "masterserver", HON_DEFAULT_MASTER_SERVER),
+                        HON_CLIENT_REQUESTER,acct->username,ck2);
+
+                    OPENSSL_free(ck);
+                    g_free(ck2);
+
+
+                    purple_util_fetch_url_request_len_with_account(gc->account,tmp->str,TRUE,HON_USER_AGENT,FALSE,NULL,FALSE,-1,start_hon_session_cb,gc);
+                    g_string_free(tmp,TRUE);
+                }
+			}
+		}		
+        destroy_php_element(ms_data);
+	}
+    g_string_free(srp->password_md5, TRUE);
+    srp_user_delete( srp->usr );
+    free(srp);
+}
+static void honprpl_login_srp(PurpleAccount *acct, GString* password_md5)
+{
+	GString* request_url = g_string_new(NULL);
+	PurpleUtilFetchUrlData *url_data;
+    srp_auth_cb_data *srp;
+    const unsigned char * bytes_A;
+    const char * auth_username;
+    int len_A;
+    BIGNUM *bn_A;
+
+	PurpleConnection *gc = purple_account_get_connection(acct);
+    srp = malloc(sizeof(srp_auth_cb_data));
+    srp->gc = gc;
+
+    srp->usr = srp_user_new(SRP_SHA256 , SRP_NG_CUSTOM, acct->username, 
+                         " ", 
+                         1, S2_N, S2_G );
+    srp->password_md5 = password_md5;
+    srp_user_start_authentication( srp->usr, &auth_username, &bytes_A, &len_A );
+
+    bn_A = BN_bin2bn( bytes_A , len_A , NULL);
+    bytes_A = BN_bn2hex( bn_A );
+    BN_free(bn_A);
+
+
+	g_string_printf(request_url,"%s%s?f=pre_auth&login=%s&A=%s",
+		purple_account_get_string(acct, "masterserver", HON_DEFAULT_MASTER_SERVER),
+		HON_CLIENT_REQUESTER,
+		acct->username,bytes_A);
+
+    OPENSSL_free(bytes_A);
+
+
+	purple_debug_info(HON_DEBUG_PREFIX, "logging in %s\n", acct->username);
+
+	purple_connection_update_progress(gc, _("Starting SRP preauth"),
+		0,   /* which connection step this is */
+		2);  /* total number of steps */
+
+
+	url_data = purple_util_fetch_url_request_len_with_account(gc->account,request_url->str,TRUE,HON_USER_AGENT,FALSE,NULL,FALSE,-1,start_srp_session_cb,srp);
+
+	g_string_free(request_url,TRUE);  
+}
+static void honprpl_login_legacy(PurpleAccount *acct, GString* password_md5)
+{
+	GString* request_url = g_string_new(NULL);
+	PurpleUtilFetchUrlData *url_data;
+	PurpleConnection *gc = purple_account_get_connection(acct);
 
 	g_string_printf(request_url,"%s%s?f=auth&login=%s&password=%s",
 		purple_account_get_string(acct, "masterserver", HON_DEFAULT_MASTER_SERVER),
@@ -763,12 +886,36 @@ static void honprpl_login(PurpleAccount *acct)
 		0,   /* which connection step this is */
 		2);  /* total number of steps */
 
-	gc->proto_data = honacc = g_new0(hon_account, 1);
 
 	url_data = purple_util_fetch_url_request_len_with_account(gc->account,request_url->str,TRUE,NULL,FALSE,NULL,FALSE,-1,start_hon_session_cb,gc);
 
-	g_string_free(password_md5,TRUE);
 	g_string_free(request_url,TRUE);  
+}
+
+
+static void honprpl_login(PurpleAccount *acct)
+{
+	PurpleConnection *gc = purple_account_get_connection(acct);
+	hon_account* honacc;
+	GString* password_md5;
+
+	if ( !purple_account_get_bool(acct,IS_MD5_OPTION,TRUE)){
+		password_md5 = get_md5_string(acct->password);
+	}
+	else
+		password_md5 = g_string_new(acct->password);
+
+	if ( purple_account_get_bool(acct,login_useSRP,TRUE)){
+        honprpl_login_srp(acct, password_md5);
+    }
+    else
+    {
+        honprpl_login_legacy(acct,password_md5);
+	    g_string_free(password_md5,TRUE);
+    }
+
+
+	gc->proto_data = honacc = g_new0(hon_account, 1);
 
 	honacc->account_data = NULL;
 	honacc->got_length = 0;
@@ -1596,7 +1743,7 @@ static PurplePluginProtocolInfo prpl_info =
 };
 static void honprpl_init(PurplePlugin *plugin)
 {
-	PurpleAccountOption *option_store_md5,*protocol_version;
+	PurpleAccountOption *option_store_md5,*protocol_version,*useSRP;
 	PurpleAccountOption *option = purple_account_option_string_new(
 		_("HoN masterserver URL"),      /* text shown to user */
 		"masterserver",                /* pref name */
@@ -1604,6 +1751,11 @@ static void honprpl_init(PurplePlugin *plugin)
 
 	purple_debug_info(HON_DEBUG_PREFIX, "starting up\n");
 
+	useSRP = purple_account_option_bool_new(
+		_("Use SRP authentication"),      /* text shown to user */
+		login_useSRP,                /* pref name */
+		TRUE
+		);
 	option_store_md5 = purple_account_option_bool_new(
 		_("Password is a MD5 hash"),      /* text shown to user */
 		IS_MD5_OPTION,                /* pref name */
@@ -1612,6 +1764,7 @@ static void honprpl_init(PurplePlugin *plugin)
     protocol_version = purple_account_option_int_new(_("Protocol version"),
             PROT_VER_STRING,HON_PROTOCOL_VERSION);
 	prpl_info.protocol_options = g_list_append(NULL, option);
+    prpl_info.protocol_options = g_list_append(prpl_info.protocol_options,useSRP);
 	prpl_info.protocol_options = g_list_append(prpl_info.protocol_options, option_store_md5);
     prpl_info.protocol_options = g_list_append(prpl_info.protocol_options,protocol_version);
 

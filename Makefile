@@ -20,7 +20,7 @@ install: all
 	done
 sdist:
 	mkdir -p dist
-	tar -cvjp --exclude .svn -f dist/honpurple-$(VERSION).tar.bz2 data src Makefile*
+	tar -cvjp --exclude .svn --exclude ".*" -f dist/honpurple-$(VERSION).tar.bz2 data src Makefile*
 deb: all
 	mkdir -p dist
 	mkdir -p deb/usr/lib/purple-2

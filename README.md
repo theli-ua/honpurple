@@ -25,10 +25,10 @@ Gentoo linux :
 <code>layman -o https://raw.github.com/theli-ua/overlay/master/overlay.xml -f --add honpurple</code>
 
 <b>Downloads</b>  
-[Source Code](http://dl.dropbox.com/u/4443078/HoN/honpurple/honpurple-0.5.11.3.tar.bz2)  
-[windows binary](http://dl.dropbox.com/u/4443078/HoN/honpurple/honpurple-win-0.5.11.3.zip)  
+[Source Code](http://dl.dropbox.com/u/4443078/HoN/honpurple/honpurple-0.5.11.4.tar.bz2)  
+[windows binary](http://dl.dropbox.com/u/4443078/HoN/honpurple/honpurple-win-0.5.11.4.zip)  
 [windows openssl binary](http://dl.dropbox.com/u/4443078/HoN/honpurple/openssl.zip)  
-[x86_64 deb package](http://dl.dropbox.com/u/4443078/HoN/honpurple/honpurple_x86_64-0.5.11.3.deb)
+[x86_64 deb package](http://dl.dropbox.com/u/4443078/HoN/honpurple/honpurple_x86_64-0.5.11.4.deb)
 
 [homepage](https://github.com/theli-ua/honpurple)  
 report bugs and find downloads @ homepage

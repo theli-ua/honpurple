@@ -611,11 +611,15 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
     while (count-- > 0)
     {
         gchar* raw_gamename = NULL;
-        gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S;
+        gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S, 
+            *color = NULL, *icon = NULL;
+        guint32 matchid = 0;
 
         id = read_guint32(buffer);
         status = read_byte(buffer);
         flags = read_byte(buffer);
+        color = read_string(buffer);
+        icon  = read_string(buffer);
         nick = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id));
         if (status == HON_STATUS_INLOBBY || status == HON_STATUS_INGAME)
         {
@@ -623,6 +627,7 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
             status_id = HON_STATUS_INGAME_S;
             raw_gamename = read_string(buffer);
             gamename = hon_strip(raw_gamename,TRUE);
+            matchid = read_guint32(buffer);
         }
         if(!status)
             status_id = HON_STATUS_OFFLINE_S;
@@ -719,7 +724,12 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint16 is_whisper)
 {
     PurpleMessageFlags receive_flags;
     gchar* message; 
-    gchar* from_username = read_string(buffer);
+    gchar* from_username = NULL;
+
+    if(!is_whisper)
+        buffer++; // some unknown byte
+    
+    from_username = read_string(buffer);
     message = hon2html(buffer);
     if (from_username[0] == '[')
     {
@@ -926,9 +936,9 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
     const gchar* extra;
     const gchar* nick;
     gchar* shield,*icon,*flag;
+    chan_id = read_guint32(buffer);
     nick =  read_string(buffer);
     account_id = read_guint32(buffer);
-    chan_id = read_guint32(buffer);
     conv = purple_find_chat(gc,chan_id);
     if (!conv)
         return;

@@ -21,6 +21,14 @@ install: all
 sdist:
 	mkdir -p dist
 	tar -cvjp --exclude .svn --exclude ".*" -f dist/honpurple-$(VERSION).tar.bz2 data src Makefile*
+windist:
+	make clean
+	make -C src -f Makefile.mingw
+	mkdir -p dist/win/plugins
+	rsync -r --exclude=.svn data/pixmaps dist/win
+	cp src/libhon.dll dist/win/plugins
+	7z a -tzip dist/honpurple-win-$(VERSION).zip $(shell pwd)/dist/win/*
+	rm -rf dist/win
 deb: all
 	mkdir -p dist
 	mkdir -p deb/usr/lib/purple-2

@@ -724,12 +724,21 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint16 is_whisper)
 {
     PurpleMessageFlags receive_flags;
     gchar* message; 
+    guint8 pm_type;
     gchar* from_username = NULL;
 
     if(!is_whisper)
-        buffer++; // some unknown byte
+        pm_type = read_byte(buffer);
     
     from_username = read_string(buffer);
+    if(!is_whisper && pm_type == 1)
+    {
+        read_guint32(buffer); // id
+        read_byte(buffer); //flags /
+        read_byte(buffer); // ??
+        read_string(buffer); // color
+        read_string(buffer); // icon
+    }
     message = hon2html(buffer);
     if (from_username[0] == '[')
     {

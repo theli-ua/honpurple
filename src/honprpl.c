@@ -475,6 +475,7 @@ static GHashTable *honprpl_chat_info_defaults(PurpleConnection *gc,
 */
 static int honprpl_read_recv(PurpleConnection *gc, int sock) {
 	guint16 packet_length = 0;
+    int ret;
     gint32 len = 0;
 	hon_account* hon = gc->proto_data;
 	gchar* buff = NULL;
@@ -483,17 +484,21 @@ static int honprpl_read_recv(PurpleConnection *gc, int sock) {
 		len += read(sock,&packet_length,2);
         if (len <= 0)
             return 0;
-		packet_length = ((packet_length & 0xFF) << 8) | ((packet_length & 0xFF00) >> 8);
+		/*packet_length = ((packet_length & 0xFF) << 8) | ((packet_length & 0xFF00) >> 8);*/
 		hon->databuff = g_byte_array_new();
 		hon->got_length = packet_length;
 	}
 	packet_length = hon->got_length - hon->databuff->len;
 	buff = g_malloc0(packet_length);
 
-	packet_length = recv(sock,buff,packet_length,0);
-	len += packet_length;
+	ret = recv(sock,buff,packet_length,0);
+    if ( ret > 0 )
+    {
+        len += ret;
+        hon->databuff = g_byte_array_append(hon->databuff,(const guint8 *)buff,ret);
+    }
 
-	hon->databuff = g_byte_array_append(hon->databuff,(const guint8 *)buff,packet_length);
+    g_free(buff);
 
 	if (hon->databuff->len == hon->got_length && len > 0)
 	{

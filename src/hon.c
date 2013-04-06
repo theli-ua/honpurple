@@ -26,6 +26,7 @@ static gboolean hon_send_packet(PurpleConnection* gc,guint16 packet_id,const gch
     guint32 intparam;
     guint8 byteparam;
     const gchar* stringparam;
+    guint16 short_len;
     va_list marker;
     hon_account* hon = gc->proto_data;
     GByteArray* buffer = g_byte_array_new();
@@ -51,6 +52,8 @@ static gboolean hon_send_packet(PurpleConnection* gc,guint16 packet_id,const gch
         paramstring++;
     }
     va_end(marker);
+    short_len = buffer->len;
+    buffer = g_byte_array_prepend(buffer,&short_len,2);
     res = buffer->len == do_write(hon->fd,buffer->data,buffer->len);
     g_byte_array_free(buffer,TRUE);
     return res;

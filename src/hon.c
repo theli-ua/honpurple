@@ -614,8 +614,8 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
     while (count-- > 0)
     {
         gchar* raw_gamename = NULL;
-        gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S, 
-            *color = NULL, *icon = NULL;
+        gchar *gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S, 
+            *color = NULL, *icon = NULL, *account_id;
         guint32 matchid = 0;
 
         id = read_guint32(buffer);
@@ -623,7 +623,8 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
         flags = read_byte(buffer);
         color = read_string(buffer);
         icon  = read_string(buffer);
-        nick = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id));
+
+        account_id = g_strdup_printf("%d", id);
         if (status == HON_STATUS_INLOBBY || status == HON_STATUS_INGAME)
         {
             server = read_string(buffer);
@@ -634,13 +635,13 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
         }
         if(!status)
             status_id = HON_STATUS_OFFLINE_S;
-        purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\n",nick,flags,status,gamename,server);
-        if (nick)
-            purple_prpl_got_user_status(gc->account, nick, status_id,
-                HON_BUDDYID_ATTR , id,
-                HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
-                server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
+        purple_debug_info(HON_DEBUG_PREFIX, "status for %s,flags:%d,status:%d,game:%s,server:%s\n",account_id,flags,status,gamename,server);
+        purple_prpl_got_user_status(gc->account, account_id, status_id,
+            HON_BUDDYID_ATTR , id,
+            HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
+            server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
         g_free(gamename);
+        g_free(account_id);
 #ifdef MINBIF
     if (nick)
     {
@@ -665,13 +666,12 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
     guint32 status;
     guint32 flags;
     guint32 matchid = 0;
-    gchar* raw_gamename = NULL;
+    gchar* raw_gamename = NULL, *account_id;
 
     guint32 id = read_guint32(buffer);
+    account_id = g_strdup_printf("%d", id);
     status = read_byte(buffer);
     flags = read_byte(buffer);
-    nick = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id));
-    /* TODO: figure this out */
     clanid = read_guint32(buffer);
     clan = read_string(buffer); // huh ?
 
@@ -694,19 +694,20 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
         status_id = HON_STATUS_OFFLINE_S;
     purple_debug_info(HON_DEBUG_PREFIX, 
         "status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s matchid:%d\nflag:%s,shield:%s,icon:%s\n"
-        ,nick,flags,status,gamename,server,clanid,clan,matchid,flag,shield,icon);
+        ,account_id,flags,status,gamename,server,clanid,clan,matchid,flag,shield,icon);
 #if 0
     if (status == HON_STATUS_ONLINE)
         honpurple_get_icon(gc->account, nick, icon,id);
 #endif
     if (nick)
-        purple_prpl_got_user_status(gc->account, nick, status_id,
+        purple_prpl_got_user_status(gc->account, account_id, status_id,
             HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
             HON_BUDDYID_ATTR , id,
             server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,
             matchid > 0 ? HON_MATCHID_ATTR : NULL, matchid,
             NULL);
     g_free(gamename);
+    g_free(account_id);
 #ifdef MINBIF
     if (nick)
     {
@@ -840,10 +841,13 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
         guint32 account_id;
         guint8 status;
         const gchar* nickname;
+        const gchar* normalized_nickname;
+        gchar* account_id_str;
         gchar *flag,*shield,*icon;
         buf = read_string(buffer);
         nickname = buf;
         account_id = read_guint32(buffer);
+        account_id_str = g_strdup_printf("%d", account_id);
         status = read_byte(buffer);
         flags = read_byte(buffer);
 
@@ -874,11 +878,11 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 
 
         extra = nickname;
-        nickname = hon_normalize_nick(gc->account,nickname);
+        normalized_nickname = hon_normalize_nick(gc->account,nickname);
         purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), nickname, extra, purple_flags, FALSE);
         if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id)))
         {
-            g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(nickname));
+            g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(normalized_nickname));
         }
     }
     flags = 0;
@@ -946,7 +950,7 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
     PurpleConversation* conv;
     guint8 status,flags;
     const gchar* extra;
-    const gchar* nick;
+    const gchar* nick, *normalized_nick;
     gchar* shield,*icon,*flag;
     chan_id = read_guint32(buffer);
     nick =  read_string(buffer);
@@ -956,7 +960,7 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
         return;
 
     extra = nick;
-    nick = hon_normalize_nick(gc->account,nick);
+    normalized_nick = hon_normalize_nick(gc->account,nick);
     status = read_byte(buffer);
     flags = read_byte(buffer);
     flag = read_string(buffer);
@@ -983,7 +987,7 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
     }
     if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id)))
     {
-        g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(nick));
+        g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(normalized_nick));
     }
 }
 void hon_parse_chat_leave(PurpleConnection *gc,gchar* buffer){

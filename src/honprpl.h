@@ -23,12 +23,12 @@
 
 
 #define HON_BUDDIES_GROUP  "HoN Buddies"
-#define HON_CLANMATES_GROUP  "HoN Clan Roster"
+#define HON_CLANMATES_GROUP  "HoN Clanmates"
 
 
 #define HON_DEBUG_PREFIX "honprpl"
 
-#define DISPLAY_VERSION "0.5.11.6"
+#define DISPLAY_VERSION "0.6"
 #define HON_CLIENT_REQUESTER "client_requester.php"
 #define HON_DEFAULT_MASTER_SERVER "http://masterserver.hon.s2games.com/"
 
@@ -63,6 +63,7 @@ typedef struct {
 	guint account_id;
 	gchar* clan_name;
 	gchar* clan_tag;
+    gchar* icon;
 } user_info;
 
 typedef struct {
@@ -91,7 +92,7 @@ typedef struct {
 	nick2idCallback cb;
 	nick2idCallback error_cb;
 	PurpleBuddy* buddy;
-}nick2id_cb_data;
+} nick2id_cb_data;
 
 typedef struct {
     struct SRPUser     * usr;

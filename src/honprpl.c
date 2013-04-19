@@ -90,13 +90,40 @@ static void honprpl_nick2id(PurpleBuddy* buddy,nick2idCallback cb,nick2idCallbac
 	purple_util_fetch_url_request_len_with_account(buddy->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_nick2id_cb,cb_data);
 	g_free(url);
 }
+static deserialized_element* find_buddy_by_id(PurpleConnection *gc, const gchar* id)
+{
+	GHashTableIter iter;
+	hon_account* hon = gc->proto_data;
+	deserialized_element* buddy_data = NULL;
+
+	if (!hon->buddies)
+		return NULL;
+
+	g_hash_table_iter_init(&iter,hon->buddies);
+	while (g_hash_table_iter_next(&iter,NULL,(gpointer*)&buddy_data))
+	{
+        const gchar *account_id = ((deserialized_element*)(g_hash_table_lookup(buddy_data->u.array,"buddy_id")))->u.string->str;
+        if (g_strcmp0(account_id, id) == 0)
+            return buddy_data;
+	}
+
+    return NULL;
+}
 static void honprpl_cleanup_blist(PurpleConnection* gc){
+	hon_account* hon = gc->proto_data;
 	GSList* buddylist = purple_find_buddies	(gc->account,NULL);
 	GSList* buddy = buddylist;
+    PurpleBuddy *b;
 	
 	while (buddy != NULL)
 	{
-		purple_blist_remove_buddy((PurpleBuddy*)buddy->data);
+        b = (PurpleBuddy*)(buddy->data);
+        if( find_buddy_by_id(gc, b->name) == NULL && 
+                g_hash_table_lookup(hon->clanmates, b->name) == NULL)
+        {
+            purple_debug_info(HON_DEBUG_PREFIX, "removing orphaned buddy %s\n",b->name);
+            purple_blist_remove_buddy(b);
+        }
 		buddy = buddy->next;
 	}
 	g_slist_free(buddylist);
@@ -122,29 +149,30 @@ static void honprpl_update_buddies(PurpleConnection* gc){
 		if (buddyname && buddyname->type != 'N')
 		{
 			PurpleBuddy* buddy;
-			guint32 id = atoi(((deserialized_element*)(g_hash_table_lookup(buddy_data->u.array,"buddy_id")))->u.string->str);
+            const gchar *account_id = ((deserialized_element*)(g_hash_table_lookup(buddy_data->u.array,"buddy_id")))->u.string->str;
+			guint32 id = atoi(account_id);
 			if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id)))
 			{
 				g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(id),g_strdup(buddyname->u.string->str));
 			}
 			
-			buddy = purple_find_buddy(gc->account,buddyname->u.string->str);
+			buddy = purple_find_buddy(gc->account,account_id);
+
+            deserialized_element* clan_tag = g_hash_table_lookup(buddy_data->u.array,"clan_tag");
 			if (!buddy)
-			{
-				deserialized_element* clan_tag = g_hash_table_lookup(buddy_data->u.array,"clan_tag");
-				if (!clan_tag || clan_tag->type != PHP_STRING)
-				{
-					buddy = purple_buddy_new(gc->account,buddyname->u.string->str,NULL);
-				}
-				else
-				{
-					clan_tag->u.string = g_string_prepend_c(clan_tag->u.string,'[');
-					clan_tag->u.string = g_string_append_c(clan_tag->u.string,']');
-					clan_tag->u.string = g_string_append(clan_tag->u.string,buddyname->u.string->str);
-					buddy = purple_buddy_new(gc->account,buddyname->u.string->str,clan_tag->u.string->str);
-				}
-				purple_blist_add_buddy(buddy,NULL,buddies,NULL);
-			}
+				buddy = purple_buddy_new(gc->account,account_id,NULL);
+            purple_blist_add_buddy(buddy,NULL,buddies,NULL);
+            if (clan_tag && clan_tag->type == PHP_STRING)
+            {
+                clan_tag->u.string = g_string_prepend_c(clan_tag->u.string,'[');
+                clan_tag->u.string = g_string_append_c(clan_tag->u.string,']');
+                clan_tag->u.string = g_string_append(clan_tag->u.string,buddyname->u.string->str);
+                serv_got_alias(gc, account_id, clan_tag->u.string->str);
+            }
+            else
+            {
+                serv_got_alias(gc, account_id, buddyname->u.string->str);
+            }
 			buddy->proto_data = GINT_TO_POINTER(id);
 		}
 		
@@ -165,10 +193,10 @@ static void honprpl_update_clanmates(PurpleConnection* gc){
 
 	clanname =  ((deserialized_element*)(g_hash_table_lookup(hon->clan_info,"name")))->u.string->str;
 
-	clanmates = purple_find_group(clanname);
+	clanmates = purple_find_group(HON_CLANMATES_GROUP);
 
 	if (!clanmates){
-		clanmates = purple_group_new(clanname);
+		clanmates = purple_group_new(HON_CLANMATES_GROUP);
 		purple_blist_add_group(clanmates, NULL);
 	}
 	g_hash_table_iter_init(&iter,hon->clanmates);
@@ -184,24 +212,23 @@ static void honprpl_update_clanmates(PurpleConnection* gc){
 				g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(id),g_strdup(buddyname->u.string->str));
 			}
 
-			buddy = purple_find_buddy(gc->account,buddyname->u.string->str);
+			buddy = purple_find_buddy(gc->account,key);
 			if (!buddy)
-			{
-				if (!clan_tag || clan_tag->type != PHP_STRING)
-				{
-					buddy = purple_buddy_new(gc->account,buddyname->u.string->str,NULL);
-				}
-				else
-				{
-					GString* alias = g_string_new(clan_tag->u.string->str);
-					alias = g_string_prepend_c(alias,'[');
-					alias = g_string_append_c(alias,']');
-					alias = g_string_append(alias,buddyname->u.string->str);
-					buddy = purple_buddy_new(gc->account,buddyname->u.string->str,alias->str);
-					g_string_free(alias,TRUE);
-				}
-				purple_blist_add_buddy(buddy,NULL,clanmates,NULL);
-			}
+            buddy = purple_buddy_new(gc->account,key,NULL);
+            purple_blist_add_buddy(buddy,NULL,clanmates,NULL);
+            if (!clan_tag || clan_tag->type != PHP_STRING)
+            {
+                serv_got_alias(gc, key, buddyname->u.string->str);
+            }
+            else
+            {
+                GString* alias = g_string_new(clan_tag->u.string->str);
+                alias = g_string_prepend_c(alias,'[');
+                alias = g_string_append_c(alias,']');
+                alias = g_string_append(alias,buddyname->u.string->str);
+                serv_got_alias(gc, key, alias->str);
+                g_string_free(alias,TRUE);
+            }
 			buddy->proto_data = GINT_TO_POINTER(id);
 		}
 
@@ -2113,7 +2140,7 @@ static PurplePluginInfo info =
 	N_("Heroes of Newerth Protocol Plugin"),                              /* summary */
 	N_("Protocol Plugin for Heroes of Newerth chat server"),                              /* description */
 	NULL,                                                    /* author */
-	"http://code.google.com/p/honpurple/",                                          /* homepage */
+	"https://github.com/theli-ua/honpurple/",                                          /* homepage */
 	NULL,                                                    /* load */
 	NULL,                                                    /* unload */
 	honprpl_destroy,                                        /* destroy */

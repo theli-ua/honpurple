@@ -64,7 +64,7 @@ typedef struct {
 	gchar* clan_name;
 	gchar* clan_tag;
     gchar* icon;
-} user_info;
+} hon_user_info;
 
 typedef struct {
 	deserialized_element* account_data;
@@ -77,7 +77,7 @@ typedef struct {
 	gchar* cookie;
 	gchar* ip;
 	gchar* auth;
-	user_info self;
+	hon_user_info self;
 	PurpleRoomlist* roomlist;
 	int fd;
 	PurpleConversation* whois_conv;

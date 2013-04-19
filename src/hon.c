@@ -624,6 +624,7 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
         color = read_string(buffer);
         icon  = read_string(buffer);
 
+
         account_id = g_strdup_printf("%d", id);
         if (status == HON_STATUS_INLOBBY || status == HON_STATUS_INGAME)
         {
@@ -640,6 +641,10 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
             HON_BUDDYID_ATTR , id,
             HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
             server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,NULL);
+
+        if (status != HON_STATUS_OFFLINE)
+            honpurple_get_icon(gc->account, account_id, icon,id);
+
         g_free(gamename);
         g_free(account_id);
 #ifdef MINBIF
@@ -658,7 +663,7 @@ void hon_parse_initiall_statuses(PurpleConnection *gc,gchar* buffer){
     }
 }
 void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
-    gchar* nick,*gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S;
+    gchar *gamename=NULL, *server=NULL,*status_id = HON_STATUS_ONLINE_S;
     gchar* clan = NULL; // or channel?
     gchar* shield = NULL,*icon = NULL,*flag = NULL;
     guint32 clanid;
@@ -695,17 +700,16 @@ void hon_parse_user_status(PurpleConnection *gc,gchar* buffer){
     purple_debug_info(HON_DEBUG_PREFIX, 
         "status for %s,flags:%d,status:%d,game:%s,server:%s\nclanid:%d, clan?:%s matchid:%d\nflag:%s,shield:%s,icon:%s\n"
         ,account_id,flags,status,gamename,server,clanid,clan,matchid,flag,shield,icon);
-#if 0
-    if (status == HON_STATUS_ONLINE)
-        honpurple_get_icon(gc->account, nick, icon,id);
-#endif
-    if (nick)
-        purple_prpl_got_user_status(gc->account, account_id, status_id,
-            HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
-            HON_BUDDYID_ATTR , id,
-            server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,
-            matchid > 0 ? HON_MATCHID_ATTR : NULL, matchid,
-            NULL);
+    if (status != HON_STATUS_OFFLINE)
+        honpurple_get_icon(gc->account, account_id, icon,id);
+
+    purple_prpl_got_user_status(gc->account, account_id, status_id,
+        HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,
+        HON_BUDDYID_ATTR , id,
+        server ? HON_SERVER_ATTR : NULL,server,gamename ? HON_GAME_ATTR : NULL,gamename,
+        matchid > 0 ? HON_MATCHID_ATTR : NULL, matchid,
+        NULL);
+
     g_free(gamename);
     g_free(account_id);
 #ifdef MINBIF

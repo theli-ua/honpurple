@@ -326,6 +326,8 @@ gchar* hon_strip(const gchar* input,gboolean escape){
 			|| buffer[1] == 'c' || buffer[1] == 'C'
 			|| buffer[1] == 'b' || buffer[1] == 'B'
 			|| buffer[1] == 'm' || buffer[1] == 'M'
+			|| buffer[1] == '*' || buffer[1] == ':'
+			|| buffer[1] == 'o' || buffer[1] == 'O'
 			)
 			{
 				buffer += 2;

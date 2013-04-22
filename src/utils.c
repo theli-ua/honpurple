@@ -256,6 +256,12 @@ gchar* hon2html(const gchar* input){
 				decoded = g_string_append(decoded,"<FONT COLOR=\"#FF00FF\">");
 				buffer += 2;
 			}
+			else if (buffer[1] == 'o' || buffer[1] == 'O')
+			{
+				if (opened == 3)decoded = g_string_append(decoded,"</FONT>");
+				decoded = g_string_append(decoded,"<FONT COLOR=\"#FFA500\">");
+				buffer += 2;
+			}
 			else if (buffer < end - 3
 				&& g_ascii_isdigit(buffer[1])
 				&& g_ascii_isdigit(buffer[2])

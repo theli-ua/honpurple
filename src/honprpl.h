@@ -23,6 +23,7 @@
 
 
 #define HON_BUDDIES_GROUP  "HoN Buddies"
+#define HON_TEMP_GROUP  "HoN temporary buddies"
 #define HON_CLANMATES_GROUP  "HoN Clanmates"
 
 

@@ -527,7 +527,9 @@ void hon_parse_max_channels(PurpleConnection *gc,gchar* buffer){
 }
 void hon_parse_global_notification(PurpleConnection *gc,gchar* buffer){
     gchar* username = read_string(buffer);
-    purple_notify_warning(NULL,username,buffer,NULL);
+    gchar* message = hon_strip(buffer, FALSE);
+    purple_notify_warning(NULL,username,message,NULL);
+    g_free(message);
 }
 static void
 finish_auth_request(PurpleConnection *gc, gchar *nick)
@@ -816,7 +818,9 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
     gchar* topic,*topic_raw;
     const gchar* extra;
     GHashTable* ops = NULL;
+    PurpleGroup *pgroup;
     gchar* buf;
+    gchar* account_id_str;
 
     gchar* room = read_string(buffer);
     chat_id = read_guint32(buffer);
@@ -839,6 +843,12 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
     count = read_guint32(buffer);
     convo = serv_got_joined_chat(gc, chat_id, room);
     purple_conv_chat_set_topic(PURPLE_CONV_CHAT(convo), NULL, topic_raw);
+    pgroup = purple_find_group(HON_TEMP_GROUP);
+    if (!pgroup)
+    {
+        pgroup = purple_group_new(HON_TEMP_GROUP);
+        purple_blist_add_group(pgroup, NULL);
+    }
 
     while (count--)
     {
@@ -846,7 +856,6 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
         guint8 status;
         const gchar* nickname;
         const gchar* normalized_nickname;
-        gchar* account_id_str;
         gchar *flag,*shield,*icon;
         buf = read_string(buffer);
         nickname = buf;
@@ -861,9 +870,6 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 
         purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d,flag:%s,shield=%s,icon=%s\n",
             nickname,account_id,status,flags,flag,shield,icon);
-#if 0
-        honpurple_get_icon(gc->account,nickname,icon,account_id);
-#endif
         
         
 
@@ -880,14 +886,22 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
         else if (flags == HON_FLAGS_CHAT_OFFICER)
             purple_flags = PURPLE_CBFLAGS_HALFOP;
 
+        if (!purple_find_buddy(gc->account, account_id_str))
+        {
+            PurpleBuddy *buddy = purple_buddy_new(gc->account, account_id_str,nickname);
+            purple_blist_node_set_flags((PurpleBlistNode *)buddy, PURPLE_BLIST_NODE_FLAG_NO_SAVE);
+            purple_blist_add_buddy(buddy, NULL, pgroup, NULL);
+        }
 
         extra = nickname;
         normalized_nickname = hon_normalize_nick(gc->account,nickname);
-        purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), nickname, extra, purple_flags, FALSE);
+        purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), account_id_str, extra, purple_flags, FALSE);
+
         if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id)))
         {
             g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(normalized_nickname));
         }
+        g_free(account_id_str);
     }
     flags = 0;
     purple_flags = PURPLE_CBFLAGS_NONE;
@@ -910,7 +924,9 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
     g_free(topic);
     g_free(topic_raw);
 
-    purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), hon->self.nickname, NULL,purple_flags , FALSE);
+    account_id_str = g_strdup_printf("%d", hon->self.account_id);
+    purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), account_id_str, NULL,purple_flags , FALSE);
+    g_free(account_id_str);
 }
 
 void hon_parse_emote_roll(PurpleConnection *gc,gchar* buffer, guint16 packet_id){
@@ -930,8 +946,9 @@ void hon_parse_emote_roll(PurpleConnection *gc,gchar* buffer, guint16 packet_id)
         msg = g_strdup_printf("[%s] %s" , _("ROLL"),msg);
     g_free(tmp);
     chat = purple_find_chat(gc,chan_id);
-    sender = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id));
+    sender = g_strdup_printf("%d", account_id);
     serv_got_chat_in(gc,chan_id,sender ,PURPLE_MESSAGE_RECV,msg,time(NULL));
+    g_free(sender);
     g_free(msg);
 }
 void hon_parse_chat_message(PurpleConnection *gc,gchar* buffer){
@@ -943,8 +960,9 @@ void hon_parse_chat_message(PurpleConnection *gc,gchar* buffer){
     account_id = read_guint32(buffer);
     chan_id = read_guint32(buffer);
     msg = hon2html(buffer);
-    sender = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id));
+    sender = g_strdup_printf("%d", account_id);
     serv_got_chat_in(gc,chan_id,sender? sender : "unknown user" ,PURPLE_MESSAGE_RECV,msg,time(NULL));
+    g_free(sender);
     g_free(msg);
 }
 void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
@@ -952,6 +970,7 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
     guint32 account_id;
     guint32 chan_id,purple_flags = PURPLE_CBFLAGS_NONE;
     PurpleConversation* conv;
+    PurpleGroup *pgroup;
     guint8 status,flags;
     const gchar* extra;
     const gchar* nick, *normalized_nick;
@@ -962,6 +981,13 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
     conv = purple_find_chat(gc,chan_id);
     if (!conv)
         return;
+
+    pgroup = purple_find_group(HON_TEMP_GROUP);
+    if (!pgroup)
+    {
+        pgroup = purple_group_new(HON_TEMP_GROUP);
+        purple_blist_add_group(pgroup, NULL);
+    }
 
     extra = nick;
     normalized_nick = hon_normalize_nick(gc->account,nick);
@@ -984,6 +1010,14 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
     else if (flags == HON_FLAGS_CHAT_OFFICER)
         purple_flags = PURPLE_CBFLAGS_HALFOP;
 
+    nick = g_strdup_printf("%d", account_id);
+
+    if (!purple_find_buddy(gc->account, nick))
+    {
+        PurpleBuddy *buddy = purple_buddy_new(gc->account, nick,extra);
+        purple_blist_node_set_flags((PurpleBlistNode *)buddy, PURPLE_BLIST_NODE_FLAG_NO_SAVE);
+        purple_blist_add_buddy(buddy, NULL, pgroup, NULL);
+    }
 
     if (conv)
     {
@@ -993,6 +1027,7 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
     {
         g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(normalized_nick));
     }
+    g_free(nick);
 }
 void hon_parse_chat_leave(PurpleConnection *gc,gchar* buffer){
     hon_account* hon = gc->proto_data;
@@ -1002,7 +1037,7 @@ void hon_parse_chat_leave(PurpleConnection *gc,gchar* buffer){
     PurpleConversation* conv;
     account_id = read_guint32(buffer);
     chan_id = read_guint32(buffer);
-    nick = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id));
+    nick = g_strdup_printf("%d", account_id);
     conv = purple_find_chat(gc,chan_id);
     if (conv && nick)
     {
@@ -1010,6 +1045,7 @@ void hon_parse_chat_leave(PurpleConnection *gc,gchar* buffer){
     }
     if (account_id == hon->self.account_id)
         serv_got_chat_left(gc, chan_id);
+    g_free(nick);
 }
 void hon_parse_clan_message(PurpleConnection *gc,gchar* buffer){
     hon_account* hon = gc->proto_data;
@@ -1030,8 +1066,9 @@ void hon_parse_clan_message(PurpleConnection *gc,gchar* buffer){
         message = g_strdup_printf("[%s] %s" , _("WHISPER"),message);
         g_free(tmp);
 #endif
-        user = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(buddy_id));
+        user = g_strdup_printf("%d", buddy_id);
         purple_conv_chat_write(PURPLE_CONV_CHAT(clanConv), user,message, PURPLE_MESSAGE_WHISPER, time(NULL));
+        g_free(user);
     }
     g_free(message);
 }

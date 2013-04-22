@@ -1182,13 +1182,15 @@ static int honprpl_chat_send(PurpleConnection *gc, int id, const char *message,
 	hon_account* hon = gc->proto_data;
 	gchar* coloredmessage;
 	char *plain;
+    gchar *account_id = g_strdup_printf(hon->self.account_id);
 	int res;
 	purple_markup_html_to_xhtml(message, NULL, &plain);
 	coloredmessage = hon2html(plain);
 	res = hon_send_chat_message(gc,id,plain);
-	serv_got_chat_in(gc,id,hon->self.nickname,PURPLE_MESSAGE_SEND,coloredmessage,time(NULL));
+	serv_got_chat_in(gc,id,account_id,PURPLE_MESSAGE_SEND,coloredmessage,time(NULL));
 	g_free(coloredmessage);
 	g_free(plain);
+	g_free(account_id);
 	return 0;
 }
 
@@ -1573,7 +1575,7 @@ static void honprpl_buddy_free(PurpleBuddy *buddy)
 
 static PurplePluginProtocolInfo prpl_info =
 {
-	OPT_PROTO_CHAT_TOPIC | OPT_PROTO_UNIQUE_CHATNAME,  /* options */
+	OPT_PROTO_CHAT_TOPIC ,  /* options */
 	NULL,               /* user_splits, initialized in honprpl_init() */
 	NULL,               /* protocol_options, initialized in honprpl_init() */
 	{   /* icon_spec, a PurpleBuddyIconSpec */

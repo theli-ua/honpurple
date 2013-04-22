@@ -1182,7 +1182,7 @@ static int honprpl_chat_send(PurpleConnection *gc, int id, const char *message,
 	hon_account* hon = gc->proto_data;
 	gchar* coloredmessage;
 	char *plain;
-    gchar *account_id = g_strdup_printf(hon->self.account_id);
+    gchar *account_id = g_strdup_printf("%d", hon->self.account_id);
 	int res;
 	purple_markup_html_to_xhtml(message, NULL, &plain);
 	coloredmessage = hon2html(plain);

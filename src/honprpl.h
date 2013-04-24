@@ -74,7 +74,6 @@ typedef struct {
 	GHashTable* ignores;
 	GHashTable* banned;
 	GHashTable* clan_info;
-	GHashTable* id2nick;
 	gchar* cookie;
 	gchar* ip;
 	gchar* auth;

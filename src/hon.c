@@ -367,10 +367,11 @@ void hon_parse_channel_ban_unban(PurpleConnection *gc,gchar* buffer,guint16 pack
 
     if (kickerid == hon->self.account_id)
         kicker = hon->self.nickname;
-    else if((kicker = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickerid))))
-    {}
-    else
-        kicker = _("Someone");
+    /*else if((kicker = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickerid))))*/
+    /*{}*/
+    /*else*/
+        /*kicker = _("Someone");*/
+    kicker = g_strdup_printf("%d", kickerid);
 
     if (packet_id == HON_SC_CHANNEL_BAN)
         action = _("banned");
@@ -378,8 +379,10 @@ void hon_parse_channel_ban_unban(PurpleConnection *gc,gchar* buffer,guint16 pack
         action = _("unbanned");
     
 
-    msg = g_strdup_printf(_("%s was %s from the channel by %s."),kicked,action,kicker);
-    purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+    msg = g_strdup_printf(_("%s %s from the channel."),action,kicked);
+    /*purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));*/
+    serv_got_chat_in(gc, chatid, kicker, PURPLE_MESSAGE_RECV, msg, time(NULL));
+    g_free(kicker);
     g_free(msg);
 }
 void hon_parse_join_channel_password(PurpleConnection *gc,gchar* buffer){
@@ -403,12 +406,7 @@ void hon_parse_channel_kick(PurpleConnection *gc,gchar* buffer){
     if (!chat)
         return;
 
-    if (kickerid == hon->self.account_id)
-        kicker = hon->self.nickname;
-    else if((kicker = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickerid))))
-    {}
-    else
-        kicker = _("Someone");
+    kicker = g_strdup_printf("%d", kickerid);
 
     if (kickedid == hon->self.account_id)
         kicked = hon->self.nickname;
@@ -417,13 +415,14 @@ void hon_parse_channel_kick(PurpleConnection *gc,gchar* buffer){
     else
         kicked = _("Someone");
 
-    msg = g_strdup_printf(_("%s was kicked from the channel by %s"),kicked,kicker);
-    purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
+    msg = g_strdup_printf(_("/me kicked %s from the channel"),kicked);
+    serv_got_chat_in(gc, chatid, kicker, PURPLE_MESSAGE_RECV, msg, time(NULL));
 
     if (kickedid == hon->self.account_id)
         serv_got_chat_left(gc, chatid);
 
     g_free(msg);
+    g_free(kicker);
 }
 void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint16 packet_id){
     hon_account* hon = gc->proto_data;
@@ -857,6 +856,7 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
         const gchar* nickname;
         const gchar* normalized_nickname;
         gchar *flag,*shield,*icon;
+        const gchar *status_id = NULL;
         buf = read_string(buffer);
         nickname = buf;
         account_id = read_guint32(buffer);
@@ -886,12 +886,23 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
         else if (flags == HON_FLAGS_CHAT_OFFICER)
             purple_flags = PURPLE_CBFLAGS_HALFOP;
 
+        if (status == HON_STATUS_ONLINE)
+            status_id = HON_STATUS_ONLINE_S;
+        else if (status == HON_STATUS_INGAME || status == HON_STATUS_INLOBBY)
+            status_id = HON_STATUS_INGAME_S;
+        else
+            status_id = HON_STATUS_ONLINE_S;
+
         if (!purple_find_buddy(gc->account, account_id_str))
         {
             PurpleBuddy *buddy = purple_buddy_new(gc->account, account_id_str,nickname);
             purple_blist_node_set_flags((PurpleBlistNode *)buddy, PURPLE_BLIST_NODE_FLAG_NO_SAVE);
             purple_blist_add_buddy(buddy, NULL, pgroup, NULL);
         }
+        purple_prpl_got_user_status(gc->account, account_id_str, status_id,
+            HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,NULL);
+        if (status != HON_STATUS_OFFLINE)
+            honpurple_get_icon(gc->account, account_id_str, icon,account_id);
 
         extra = nickname;
         normalized_nickname = hon_normalize_nick(gc->account,nickname);
@@ -972,7 +983,7 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
     PurpleConversation* conv;
     PurpleGroup *pgroup;
     guint8 status,flags;
-    const gchar* extra;
+    const gchar* extra, *status_id;
     const gchar* nick, *normalized_nick;
     gchar* shield,*icon,*flag;
     chan_id = read_guint32(buffer);
@@ -1012,12 +1023,25 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 
     nick = g_strdup_printf("%d", account_id);
 
+    if (status == HON_STATUS_ONLINE)
+        status_id = HON_STATUS_ONLINE_S;
+    else if (status == HON_STATUS_INGAME || status == HON_STATUS_INLOBBY)
+        status_id = HON_STATUS_INGAME_S;
+    else
+        status_id = HON_STATUS_ONLINE_S;
+
     if (!purple_find_buddy(gc->account, nick))
     {
         PurpleBuddy *buddy = purple_buddy_new(gc->account, nick,extra);
         purple_blist_node_set_flags((PurpleBlistNode *)buddy, PURPLE_BLIST_NODE_FLAG_NO_SAVE);
         purple_blist_add_buddy(buddy, NULL, pgroup, NULL);
     }
+
+    purple_prpl_got_user_status(gc->account, nick, status_id,
+        HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,NULL);
+
+    if (status != HON_STATUS_OFFLINE)
+        honpurple_get_icon(gc->account, nick, icon,account_id);
 
     if (conv)
     {

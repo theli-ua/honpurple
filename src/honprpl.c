@@ -153,10 +153,6 @@ static void honprpl_update_buddies(PurpleConnection* gc){
             hon_user_info *honInfo = NULL;
             const gchar *account_id = ((deserialized_element*)(g_hash_table_lookup(buddy_data->u.array,"buddy_id")))->u.string->str;
 			guint32 id = atoi(account_id);
-			if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id)))
-			{
-				g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(id),g_strdup(buddyname->u.string->str));
-			}
 			
 			buddy = purple_find_buddy(gc->account,account_id);
 
@@ -221,10 +217,6 @@ static void honprpl_update_clanmates(PurpleConnection* gc){
 			PurpleBuddy* buddy;
             hon_user_info *honInfo = NULL;
 			guint32 id = atoi(key);
-			if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(id)))
-			{
-				g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(id),g_strdup(buddyname->u.string->str));
-			}
 
 			buddy = purple_find_buddy(gc->account,key);
 			if (!buddy)
@@ -975,7 +967,6 @@ static void honprpl_login(PurpleAccount *acct)
 	honacc->got_length = 0;
 	honacc->gotPacket = FALSE;
 	honacc->timeout_handle = 0;
-	honacc->id2nick = g_hash_table_new_full(g_direct_hash,g_direct_equal,NULL,g_free);
 }
 
 static void honprpl_close(PurpleConnection *gc)
@@ -985,7 +976,6 @@ static void honprpl_close(PurpleConnection *gc)
 
 	if (gc->inpa)
 		purple_input_remove(gc->inpa);
-	g_hash_table_destroy(hon->id2nick);
 	if (hon->account_data)
 		destroy_php_element(hon->account_data);
 	hon->account_data = NULL;
@@ -1002,10 +992,10 @@ static int honprpl_send_im(PurpleConnection *gc, const char *who,
 	int res;
 	purple_markup_html_to_xhtml(message, NULL, &plain);
 
-#ifdef _DEBUG
+/*#ifdef _DEBUG*/
 	purple_debug_info(HON_DEBUG_PREFIX, "sending message to %s: %s\n",
 		who, message);
-#endif
+/*#endif*/
 	res = hon_send_pm(gc,who,plain);
 	g_free(plain);
 	return res;
@@ -1332,15 +1322,19 @@ static PurpleCmdRet honprpl_clan_commands(PurpleConversation *conv, const gchar 
 	}
 	else if (!g_strcmp0(command,"remove"))
     {
-        GHashTableIter iter;
         gulong kicked_id = 0,id = 0;
-        gchar *user = args[1],*name = NULL;
-        g_hash_table_iter_init(&iter,hon->id2nick);
-        while (kicked_id == 0 && g_hash_table_iter_next(&iter,(gpointer *)&id,(gpointer *)&name))
+        gchar *user = normalize_nick(args[1]);
+        GHashTableIter iter;
+        deserialized_element* buddy_data;
+        g_hash_table_iter_init(&iter,hon->clanmates);
+        while (g_hash_table_iter_next(&iter,(gpointer*)&id,(gpointer*)&buddy_data))
         {
-            if (strcmp(name,user)==0)
+            deserialized_element* buddyname = g_hash_table_lookup(buddy_data->u.array,"nickname");
+            if (buddyname && buddyname->type != 'N' && 0 == g_ascii_strcasecmp(user, 
+                        normalize_nick( buddyname->u.string->str ) ) )
             {
                 kicked_id = id;
+                break;
             }
         }
 		purple_debug_info(HON_DEBUG_PREFIX, "Found Id:%lu to remove %s from clan\n",kicked_id,user);
@@ -1478,6 +1472,8 @@ static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 		*error = g_strdup(_("You need to be OP or Founder for this command"));
 		return PURPLE_CMD_RET_FAILED;
 	}
+    //TODO
+#if 0
 	g_hash_table_iter_init(&iter,hon->id2nick);
 	while (kicked_id == 0 && g_hash_table_iter_next(&iter,(gpointer *)&id,(gpointer *)&name))
 	{
@@ -1486,6 +1482,7 @@ static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 			kicked_id = id;
 		}
 	}
+#endif
 	if (kicked_id != 0 || packetId == HON_CS_CHANNEL_BAN || packetId == HON_CS_CHANNEL_UNBAN)
 		switch (packetId){
 			case HON_CS_CHANNEL_KICK:
@@ -1540,7 +1537,7 @@ void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* i
     if (old_avatar && g_str_equal(icon, old_avatar))
     {
         purple_debug_info(HON_DEBUG_PREFIX, 
-            "no need to update icon ...\n");
+            "no need to update icon ... %s == %s\n", old_avatar , icon);
         return;
     }
     purple_debug_info(HON_DEBUG_PREFIX, 
@@ -1549,7 +1546,7 @@ void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* i
 #if PURPLE_VERSION_CHECK(3, 0, 0)
     //TODO
 #else
-    purple_util_fetch_url_request(url, TRUE, NULL, FALSE, NULL, FALSE, honpurple_get_icon_cb, buddy);
+    purple_util_fetch_url_request_len_with_account(account, url, TRUE, NULL, FALSE, NULL, FALSE, -1, honpurple_get_icon_cb, buddy);
 #endif
 	g_free(url);
 }

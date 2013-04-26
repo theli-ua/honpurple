@@ -354,7 +354,6 @@ void hon_parse_channel_password_changed(PurpleConnection* gc,gchar* buffer){
 }
 void hon_parse_channel_ban_unban(PurpleConnection *gc,gchar* buffer,guint16 packet_id)
 {
-    hon_account* hon = gc->proto_data;
     guint32 chatid,kickerid;
     gchar* kicked,*kicker,*msg,*action;
     PurpleConversation* chat;
@@ -365,12 +364,6 @@ void hon_parse_channel_ban_unban(PurpleConnection *gc,gchar* buffer,guint16 pack
     if (!chat)
         return;
 
-    if (kickerid == hon->self.account_id)
-        kicker = hon->self.nickname;
-    /*else if((kicker = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickerid))))*/
-    /*{}*/
-    /*else*/
-        /*kicker = _("Someone");*/
     kicker = g_strdup_printf("%d", kickerid);
 
     if (packet_id == HON_SC_CHANNEL_BAN)
@@ -408,21 +401,17 @@ void hon_parse_channel_kick(PurpleConnection *gc,gchar* buffer){
 
     kicker = g_strdup_printf("%d", kickerid);
 
-    if (kickedid == hon->self.account_id)
-        kicked = hon->self.nickname;
-    else if((kicked = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickedid))))
-    {}
-    else
-        kicked = _("Someone");
+    kicked = g_strdup_printf("%d", kickedid);
 
-    msg = g_strdup_printf(_("/me kicked %s from the channel"),kicked);
-    serv_got_chat_in(gc, chatid, kicker, PURPLE_MESSAGE_RECV, msg, time(NULL));
+    msg = g_strdup_printf(_("Kicked by %s from the channel"),purple_conv_chat_cb_find(PURPLE_CONV_CHAT(chat), kicker)->alias);
+    purple_conv_chat_remove_user(PURPLE_CONV_CHAT(chat), kicked, msg);
 
     if (kickedid == hon->self.account_id)
         serv_got_chat_left(gc, chatid);
 
     g_free(msg);
     g_free(kicker);
+    g_free(kicked);
 }
 void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint16 packet_id){
     hon_account* hon = gc->proto_data;
@@ -439,22 +428,12 @@ void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint16
     if (!chat)
         return;
 
-    if (kickerid == hon->self.account_id)
-        kicker = hon->self.nickname;
-    else if((kicker = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickerid))))
-    {}
-    else
-        kicker = _("Someone");
+    kicker = g_strdup_printf("%d", kickerid);
 
-    if (kickedid == hon->self.account_id)
-        kicked = hon->self.nickname;
-    else if((kicked = g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(kickedid))))
-    {}
-    else
-        return;
+    kicked = g_strdup_printf("%d", kickedid);
+    chatbuddy_flags = purple_conv_chat_user_get_flags(PURPLE_CONV_CHAT(chat),kicked);
 
     
-    chatbuddy_flags = purple_conv_chat_user_get_flags(PURPLE_CONV_CHAT(chat),kicked);
     if (packet_id == HON_SC_CHANNEL_PROMOTE)
     {
         action = _("promoted");
@@ -496,7 +475,7 @@ void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint16
             rank = _("Channel Officer");
             chatbuddy_flags = PURPLE_CBFLAGS_HALFOP;
         }
-        else if (chatbuddy_flags == PURPLE_CBFLAGS_HALFOP)
+        else /*if (chatbuddy_flags == PURPLE_CBFLAGS_HALFOP) */
         {
             rank = _("Non admin status");
             chatbuddy_flags = PURPLE_CBFLAGS_NONE;
@@ -506,10 +485,38 @@ void hon_parse_channel_promote_demote(PurpleConnection *gc,gchar* buffer,guint16
     }
 
     purple_conv_chat_user_set_flags(PURPLE_CONV_CHAT(chat),kicked,chatbuddy_flags);
+    //Now find the nicknames for message
+    if (kickedid == hon->self.account_id)
+    {
+        g_free(kicked);
+        kicked = g_strdup(hon->self.nickname);
+    }
+    else 
+    {
+        PurpleConvChatBuddy* cb = purple_conv_chat_cb_find(PURPLE_CONV_CHAT(chat), kicked);
+        g_free(kicked);
+        kicked = g_strdup(cb->alias);
+    }
+
+    //Now find the nicknames for message
+    if (kickerid == hon->self.account_id)
+    {
+        g_free(kicker);
+        kicker = g_strdup(hon->self.nickname);
+    }
+    else 
+    {
+        PurpleConvChatBuddy* cb = purple_conv_chat_cb_find(PURPLE_CONV_CHAT(chat), kicker);
+        g_free(kicker);
+        kicker = g_strdup(cb->alias);
+    }
+
     msg = g_strdup_printf(_("%s has been %s to %s by %s"),kicked,action,rank,kicker);
     purple_conv_chat_write(PURPLE_CONV_CHAT(chat), "", msg, PURPLE_MESSAGE_SYSTEM, time(NULL));
 
     g_free(msg);
+    g_free(kicker);
+    g_free(kicked);
 }
 
 void hon_parse_pm_failed(PurpleConnection *gc,gchar* buffer){
@@ -580,7 +587,6 @@ void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
         buddies = purple_find_group(HON_BUDDIES_GROUP);
         buddyid = read_guint32(buffer);
         read_guint32(buffer); /* notification id */
-        g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(buddyid),g_strdup(buffer));
         buddy = purple_buddy_new(gc->account,buffer,NULL);
         purple_blist_add_buddy(buddy,NULL,buddies,NULL);
         title = g_strdup(_("Friendship Accepted"));
@@ -908,10 +914,6 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
         normalized_nickname = hon_normalize_nick(gc->account,nickname);
         purple_conv_chat_add_user(PURPLE_CONV_CHAT(convo), account_id_str, extra, purple_flags, FALSE);
 
-        if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id)))
-        {
-            g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(normalized_nickname));
-        }
         g_free(account_id_str);
     }
     flags = 0;
@@ -1046,10 +1048,6 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
     if (conv)
     {
         purple_conv_chat_add_user(PURPLE_CONV_CHAT(conv),nick,extra,purple_flags,TRUE);
-    }
-    if (!g_hash_table_lookup(hon->id2nick,GINT_TO_POINTER(account_id)))
-    {
-        g_hash_table_insert(hon->id2nick,GINT_TO_POINTER(account_id),g_strdup(normalized_nick));
     }
     g_free(nick);
 }

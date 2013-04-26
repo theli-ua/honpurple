@@ -1323,7 +1323,7 @@ static PurpleCmdRet honprpl_clan_commands(PurpleConversation *conv, const gchar 
 	else if (!g_strcmp0(command,"remove"))
     {
         gulong kicked_id = 0,id = 0;
-        gchar *user = normalize_nick(args[1]);
+        gchar *user = hon_normalize_nick(gc->account, args[1]);
         GHashTableIter iter;
         deserialized_element* buddy_data;
         g_hash_table_iter_init(&iter,hon->clanmates);
@@ -1331,7 +1331,7 @@ static PurpleCmdRet honprpl_clan_commands(PurpleConversation *conv, const gchar 
         {
             deserialized_element* buddyname = g_hash_table_lookup(buddy_data->u.array,"nickname");
             if (buddyname && buddyname->type != 'N' && 0 == g_ascii_strcasecmp(user, 
-                        normalize_nick( buddyname->u.string->str ) ) )
+                        hon_normalize_nick(gc->account, buddyname->u.string->str ) ) )
             {
                 kicked_id = id;
                 break;
@@ -1451,38 +1451,28 @@ static PurpleCmdRet honprpl_silence(PurpleConversation *conv, const gchar *cmd,
 static PurpleCmdRet honprpl_kick(PurpleConversation *conv, const gchar *cmd,
 								  gchar **args, gchar **error, void *userdata) 
 {
-	const char* user = args[0];
-	hon_account* hon = conv->account->gc->proto_data;
-	gulong kicked_id = 0,id = 0;
+	const char* user = hon_normalize_nick(NULL, args[0]);
+	gulong kicked_id = 0;
 	guint packetId = GPOINTER_TO_UINT(userdata);
-	gchar* name;
-	GHashTableIter iter;
 	PurpleConvChat* chat = PURPLE_CONV_CHAT(conv);
+
 	if (!user || strlen(user) == 0) {
 		*error = g_strdup(_("Command is missing nickname."));
 		return PURPLE_CMD_RET_FAILED;
 	} 
-	if (!purple_conv_chat_cb_find(chat,user)
-		&& packetId != HON_CS_CHANNEL_BAN && packetId != HON_CS_CHANNEL_UNBAN
-		) {
-		*error = g_strdup(_("There is no such user in a channel"));
-		return PURPLE_CMD_RET_FAILED;
-	}
-	if (!purple_conv_chat_cb_find(chat,hon->self.nickname) || !(purple_conv_chat_cb_find(chat,hon->self.nickname)->flags & (PURPLE_CBFLAGS_FOUNDER | PURPLE_CBFLAGS_OP | PURPLE_CBFLAGS_HALFOP))) {
-		*error = g_strdup(_("You need to be OP or Founder for this command"));
-		return PURPLE_CMD_RET_FAILED;
-	}
-    //TODO
-#if 0
-	g_hash_table_iter_init(&iter,hon->id2nick);
-	while (kicked_id == 0 && g_hash_table_iter_next(&iter,(gpointer *)&id,(gpointer *)&name))
-	{
-		if (strcmp(name,user)==0)
-		{
-			kicked_id = id;
-		}
-	}
-#endif
+
+    if ( packetId != HON_CS_CHANNEL_BAN && packetId != HON_CS_CHANNEL_UNBAN )
+    {
+        GList* users_list = purple_conv_chat_get_users(chat);
+        while( kicked_id == 0 && users_list )
+        {
+            PurpleConvChatBuddy *cbuddy = (PurpleConvChatBuddy*) users_list->data;
+            if ( 0 == g_ascii_strcasecmp(user, hon_normalize_nick(NULL, cbuddy->alias) ) )
+                kicked_id = atoi( cbuddy->name );
+            users_list = users_list->next;
+        }
+    }
+
 	if (kicked_id != 0 || packetId == HON_CS_CHANNEL_BAN || packetId == HON_CS_CHANNEL_UNBAN)
 		switch (packetId){
 			case HON_CS_CHANNEL_KICK:
@@ -1541,7 +1531,7 @@ void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* i
         return;
     }
     purple_debug_info(HON_DEBUG_PREFIX, 
-        "updating icon for %s, new icon = %s, old icon = \n",nick,icon,old_avatar);
+        "updating icon for %s, new icon = %s, old icon = %s\n",nick,icon,old_avatar);
 	url = g_strdup_printf("http://www.heroesofnewerth.com/getAvatar.php?id=%d",accountid);
 #if PURPLE_VERSION_CHECK(3, 0, 0)
     //TODO

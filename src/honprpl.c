@@ -1757,22 +1757,6 @@ static void honprpl_init(PurplePlugin *plugin)
 		honprpl_join,
 		_("Join a new chat"),
 		GINT_TO_POINTER(0));
-	purple_cmd_register("j",
-		"ws",
-		PURPLE_CMD_P_DEFAULT,
-		PURPLE_CMD_FLAG_CHAT,
-		"prpl-hon",
-		honprpl_join,
-		_("Join a new chat"),
-		GINT_TO_POINTER(1));
-	purple_cmd_register("join",
-		"ws",
-		PURPLE_CMD_P_DEFAULT,
-		PURPLE_CMD_FLAG_CHAT,
-		"prpl-hon",
-		honprpl_join,
-		_("Join a new chat"),
-		GINT_TO_POINTER(1));
 	purple_cmd_register("l",
 		"",
 		PURPLE_CMD_P_DEFAULT,

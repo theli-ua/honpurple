@@ -1,4 +1,3 @@
-
 /* server -> client */
 #define	 HON_SC_AUTH_ACCEPTED 	 0x1C00
 #define	 HON_SC_PING 	 0x2A00
@@ -80,5 +79,5 @@
 #define	 HON_CS_CHANNEL_EMOTE 	 0x65
 #define	 HON_CS_BUDDY_ACCEPT 	 0xB3
 
-#define HON_PROTOCOL_VERSION 40
+#define HON_PROTOCOL_VERSION 42
 

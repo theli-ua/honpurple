@@ -750,11 +750,46 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint16 is_whisper)
     from_username = read_string(buffer);
     if(!is_whisper && pm_type == 1)
     {
-        read_guint32(buffer); // id
-        read_byte(buffer); //flags /
-        read_byte(buffer); // ??
-        read_string(buffer); // color
-        read_string(buffer); // icon
+        guint32 account_id;
+        gchar *color, *icon, *status_id, *account_id_str;
+        PurpleGroup *pgroup;
+        guint8 status, flags;
+
+        account_id = read_guint32(buffer); // id
+        status = read_byte(buffer); //flags /
+        flags = read_byte(buffer); // ??
+        color = read_string(buffer); // color
+        icon = read_string(buffer); // icon
+
+        pgroup = purple_find_group(HON_TEMP_GROUP);
+        if (!pgroup)
+        {
+            pgroup = purple_group_new(HON_TEMP_GROUP);
+            purple_blist_add_group(pgroup, NULL);
+        }
+
+        account_id_str = g_strdup_printf("%d", account_id);
+
+        if (status == HON_STATUS_ONLINE)
+            status_id = HON_STATUS_ONLINE_S;
+        else if (status == HON_STATUS_INGAME || status == HON_STATUS_INLOBBY)
+            status_id = HON_STATUS_INGAME_S;
+        else
+            status_id = HON_STATUS_ONLINE_S;
+
+
+        if (!purple_find_buddy(gc->account, account_id_str))
+        {
+            PurpleBuddy *buddy = purple_buddy_new(gc->account, account_id_str,from_username);
+            purple_blist_node_set_flags((PurpleBlistNode *)buddy, PURPLE_BLIST_NODE_FLAG_NO_SAVE);
+            purple_blist_add_buddy(buddy, NULL, pgroup, NULL);
+        }
+        purple_prpl_got_user_status(gc->account, account_id_str, status_id,
+            HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,NULL);
+        if (status != HON_STATUS_OFFLINE)
+            honpurple_get_icon(gc->account, account_id_str, icon,account_id);
+
+        g_free(account_id_str);
     }
     message = hon2html(buffer);
     if (from_username[0] == '[')

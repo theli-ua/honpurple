@@ -1235,8 +1235,14 @@ static PurpleCmdRet honprpl_send_whisper(PurpleConversation *conv, const gchar *
 	}
 	else
 	{
+        PurpleBuddy *buddy;
 		to_username = conv->name;
 		message = args[0];
+
+        if( NULL != (buddy = purple_find_buddy(conv->account, to_username) ))
+        {
+            to_username = buddy->server_alias;
+        }
 	}
 	
 

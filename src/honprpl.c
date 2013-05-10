@@ -1194,6 +1194,42 @@ static void honprpl_get_info(PurpleConnection *gc, const char *username) {
 	}
 }
 
+static void honprpl_chat_nick2id_callback(nick2id_cb_data *cb_data){
+    gchar* account_id_str = g_strdup_printf("%d", cb_data->account_id);
+    PurpleGroup *pgroup;
+    PurpleConversation* convo = NULL;
+
+    pgroup = purple_find_group(HON_TEMP_GROUP);
+    if (!pgroup)
+    {
+        pgroup = purple_group_new(HON_TEMP_GROUP);
+        purple_blist_add_group(pgroup, NULL);
+    }
+    
+    if (!purple_find_buddy(cb_data->account, account_id_str))
+    {
+        PurpleBuddy *buddy = purple_buddy_new(cb_data->account, account_id_str,NULL);
+        purple_blist_node_set_flags((PurpleBlistNode *)buddy, PURPLE_BLIST_NODE_FLAG_NO_SAVE);
+        purple_blist_add_buddy(buddy, NULL, pgroup, NULL);
+        serv_got_alias(cb_data->account->gc, account_id_str, cb_data->server_alias);
+    }
+
+    
+    convo = purple_find_conversation_with_account(PURPLE_CONV_TYPE_IM, cb_data->alias, cb_data->account);
+    purple_conversation_set_name(convo, account_id_str);
+    purple_conversation_autoset_title(convo);
+
+    g_free(account_id_str);
+}
+void honprpl_update_nonbuddy_chat(PurpleAccount* account, const gchar* alias)
+{
+    nick2id_cb_data* cb_data = g_new0(nick2id_cb_data,1);
+    cb_data->cb = honprpl_chat_nick2id_callback;
+    cb_data->account = account;
+    cb_data->alias = g_strdup(alias);
+    honprpl_nick2id(cb_data);
+}
+
 static void honprpl_join_chat(PurpleConnection *gc, GHashTable *components) {
 	gchar* password = g_hash_table_lookup(components, "password");
 	if (password && strlen(password) > 0)

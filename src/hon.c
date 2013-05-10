@@ -815,6 +815,10 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint16 is_whisper)
     {
         from_username = buddy->name;
     }
+    else
+    {
+        honprpl_update_nonbuddy_chat(gc->account, from_username);
+    }
     serv_got_im(gc, from_username, message, receive_flags, time(NULL));
     g_free(message);
 }

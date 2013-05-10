@@ -985,18 +985,42 @@ static void honprpl_close(PurpleConnection *gc)
 	gc->proto_data = NULL;
 }
 
+
+PurpleBuddy* find_buddy_by_alias(PurpleAccount* account, const gchar* alias)
+{
+    GSList* buddies = purple_find_buddies(account, NULL);
+    alias = hon_normalize_nick(account, alias);
+
+    while(buddies)
+    {
+        PurpleBuddy* buddy = (PurpleBuddy*)(buddies->data);
+        if ( !g_strcmp0(hon_normalize_nick(account, buddy->server_alias), alias) )
+            return buddy;
+        buddies = buddies->next;
+    }
+    return NULL;
+}
+
 static int honprpl_send_im(PurpleConnection *gc, const char *who,
 						   const char *message, PurpleMessageFlags flags)
 {
 	char *plain;
 	int res;
+	PurpleBuddy* buddy = purple_find_buddy(gc->account,who);
+    char* recepient = who;
+
+    if(buddy != NULL)
+    {
+        recepient = buddy->server_alias;
+    }
+
 	purple_markup_html_to_xhtml(message, NULL, &plain);
 
 /*#ifdef _DEBUG*/
 	purple_debug_info(HON_DEBUG_PREFIX, "sending message to %s: %s\n",
-		who, message);
+		recepient, message);
 /*#endif*/
-	res = hon_send_pm(gc,who,plain);
+	res = hon_send_pm(gc,recepient,plain);
 	g_free(plain);
 	return res;
 }

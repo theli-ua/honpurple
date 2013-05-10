@@ -61,12 +61,13 @@ static gboolean hon_send_packet(PurpleConnection* gc,guint16 packet_id,const gch
 const char *hon_normalize_nick(const PurpleAccount *acct,
                                const char *input)
 {
-    if (input[0] == '[')
-    {
-        while (input[0] != ']')
+    if (input != NULL)
+        if (input[0] == '[')
+        {
+            while (input[0] != ']')
+                input++;
             input++;
-        input++;
-    }
+        }
     return input;
 }
 #if ARM
@@ -741,6 +742,7 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint16 is_whisper)
     gchar* message; 
     guint8 pm_type;
     gchar* from_username = NULL;
+    PurpleBuddy* buddy;
 
     if(!is_whisper)
         pm_type = read_byte(buffer);
@@ -773,6 +775,10 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint16 is_whisper)
         g_free(tmp);
 #endif
         receive_flags |= PURPLE_MESSAGE_WHISPER;
+    }
+    if( (buddy = find_buddy_by_alias(gc->account, from_username)) != NULL)
+    {
+        from_username = buddy->name;
     }
     serv_got_im(gc, from_username, message, receive_flags, time(NULL));
     g_free(message);

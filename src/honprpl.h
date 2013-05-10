@@ -33,6 +33,10 @@
 #define HON_CLIENT_REQUESTER "client_requester.php"
 #define HON_DEFAULT_MASTER_SERVER "http://masterserver.hon.s2games.com/"
 
+#define HON_ICON_URL "http://forums.heroesofnewerth.com/images/account_icons/%s.png"
+#define HON_CAI_URL "http://icb.s2games.com/%d/%d/%d/%s.cai"
+#define HON_CAI_PREFIX "custom_icon:"
+
 #define HON_REMOVE_BUDDY_REQUEST "%s/%s?f=remove_buddy&account_id=%d&buddy_id=%d&cookie=%s"
 #define HON_ADD_BUDDY_REQUEST "%s/%s?f=new_buddy&account_id=%d&buddy_id=%d&cookie=%s"
 #define HON_NICK2ID_REQUEST "%s%s?f=nick2id&nickname[]=%s"
@@ -50,6 +54,7 @@
 #define HON_PREMIUM_EMBLEM "hon_premium"
 
 #define HON_NETWORK_TIMEOUT 30
+
 
 #ifndef N_
 #	define N_(x) (x)

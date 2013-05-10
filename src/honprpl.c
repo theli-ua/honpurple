@@ -1606,8 +1606,22 @@ void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* i
     
 	gchar* url;
 
-    if (!buddy || !buddy->proto_data)
+    if (!buddy)
         return;
+
+    if(!buddy->proto_data)
+    {
+        if(! buddy->proto_data )
+            buddy->proto_data = g_new0(hon_user_info, 1);
+        honInfo = (hon_user_info*)(buddy->proto_data);
+
+        honInfo->account_id = accountid;
+        honInfo->nickname = g_strdup(buddy->server_alias);
+        honInfo->clan_name = NULL;
+        honInfo->clan_tag = NULL;
+        honInfo->icon = NULL;
+    }
+
 
     honInfo = buddy->proto_data;
     g_free(honInfo->icon);
@@ -1622,7 +1636,23 @@ void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* i
     }
     purple_debug_info(HON_DEBUG_PREFIX, 
         "updating icon for %s, new icon = %s, old icon = %s\n",nick,icon,old_avatar);
-	url = g_strdup_printf("http://www.heroesofnewerth.com/getAvatar.php?id=%d",accountid);
+    if (g_str_has_prefix(icon, HON_CAI_PREFIX))
+    {
+        url = g_strdup_printf(HON_CAI_URL, accountid / 1000000, (accountid % 1000000 ) / 1000, accountid, &icon[12]);
+    }
+    else
+    {
+#if 1
+        url = g_strdup_printf("http://www.heroesofnewerth.com/getAvatar.php?id=%d",accountid);
+#else
+        gchar* icon_name = g_utf8_strdown(icon, -1);
+        g_strdelimit(icon_name, " ", '_');
+        url = g_strdup_printf(HON_ICON_URL, icon_name);
+        g_free(icon_name);
+#endif
+    }
+    purple_debug_info(HON_DEBUG_PREFIX, 
+        "Icon url for %s, is %s\n",nick,url);
 #if PURPLE_VERSION_CHECK(3, 0, 0)
     //TODO
 #else

@@ -87,12 +87,15 @@ typedef struct {
 	gboolean gotPacket;
 } hon_account;
 
-typedef void (*nick2idCallback)(PurpleBuddy* buddy);
-typedef struct {
-	nick2idCallback cb;
-	nick2idCallback error_cb;
-	PurpleBuddy* buddy;
-} nick2id_cb_data;
+typedef struct nick2id_cb_data nick2id_cb_data;
+struct nick2id_cb_data{
+    void (*cb)(nick2id_cb_data*);
+    void (*error_cb)(nick2id_cb_data*);
+    gchar* alias;
+    gchar* server_alias;
+    guint32 account_id;
+    PurpleAccount *account;
+};
 
 typedef struct {
     struct SRPUser     * usr;

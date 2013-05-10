@@ -36,59 +36,51 @@
 static void honpurple_nick2id_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
 	nick2id_cb_data* cb_data = user_data;
 	deserialized_element* data = NULL;
-	deserialized_element* data2 = NULL;
+    gchar* normalized_nickname = hon_normalize_nick(cb_data->account, cb_data->alias);
+    guint nick_len = strlen(normalized_nickname);
+	GHashTableIter iter;
 
-	if (url_text)
-	{
-		gchar* ltext,*lname,*foundname;
-		guint len,i;
-		ltext = g_ascii_strdown ((gchar*)url_text,-1);
-		lname = g_ascii_strdown ((gchar*)cb_data->buddy->name,-1);
-		foundname = g_strrstr (ltext,lname);
-		if (foundname)
-		{
-			i = foundname - ltext;
-			len = strlen(lname);
-			memcpy(cb_data->buddy->name,url_text + i , len);
-		}
-		g_free(ltext);
-		g_free(lname);
-	}
-	
+    if(url_text  && (data = deserialize_php(&url_text,strlen(url_text)))->type == PHP_ARRAY)
+    {
+        deserialized_element* buddy_data;
+        gchar *key;
+        g_hash_table_iter_init(&iter,data->u.array);
+        while (g_hash_table_iter_next(&iter,&key,(gpointer*)&buddy_data))
+        {
+            gchar *normkey = hon_normalize_nick(cb_data->account, key);
+            if(
+                    buddy_data->type == PHP_STRING &&
+                    nick_len == strlen(normkey) &&
+                    g_ascii_strncasecmp(normkey, normalized_nickname, nick_len) == 0
+              )
+            {
+                cb_data->server_alias = key;
+                cb_data->account_id = atoi(buddy_data->u.string->str);
+                break;
+            }
+        }
+    }
 
-	if(
-		!url_text
-		|| (data = deserialize_php(&url_text,strlen(url_text)))->type != PHP_ARRAY
-		|| ((data2 = g_hash_table_lookup(data->u.array,cb_data->buddy->name)) == 0)
-		|| data2->type != PHP_STRING
-		){
-			if (cb_data->error_cb)
-				(cb_data->error_cb)(cb_data->buddy);
-	}
-	else
-	{
-        if(cb_data->buddy->proto_data)
-            ((hon_user_info *)(cb_data->buddy->proto_data))->account_id = atoi(data2->u.string->str);
-		if (cb_data->error_cb)
-			(cb_data->cb)(cb_data->buddy);
-	}
+    if (cb_data->server_alias == NULL && cb_data->error_cb)
+        (cb_data->error_cb)(cb_data);
+    else if(cb_data->cb)
+        (cb_data->cb)(cb_data);
+
+
 	if (data)
 		destroy_php_element(data);
 	data = NULL;
 
+    g_free(cb_data->alias);
 	g_free(cb_data);
 }
-static void honprpl_nick2id(PurpleBuddy* buddy,nick2idCallback cb,nick2idCallback error_cb){
-	nick2id_cb_data* cb_data = g_new0(nick2id_cb_data,1);
+static void honprpl_nick2id(nick2id_cb_data *cb_data){
 	gchar* url;
-	cb_data->buddy = buddy;
-	cb_data->cb = cb;
-	cb_data->error_cb = error_cb;
 	url = g_strdup_printf(HON_NICK2ID_REQUEST,
-		purple_account_get_string(buddy->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
-		HON_CLIENT_REQUESTER,buddy->name
+		purple_account_get_string(cb_data->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
+		HON_CLIENT_REQUESTER,cb_data->alias
 		);
-	purple_util_fetch_url_request_len_with_account(buddy->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_nick2id_cb,cb_data);
+	purple_util_fetch_url_request_len_with_account(cb_data->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_nick2id_cb,cb_data);
 	g_free(url);
 }
 static deserialized_element* find_buddy_by_id(PurpleConnection *gc, const gchar* id)
@@ -1035,13 +1027,24 @@ static int honprpl_send_im(PurpleConnection *gc, const char *who,
 
 
 static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_data, const gchar *url_text, gsize len, const gchar *error_message){
-	PurpleBuddy* buddy = user_data;
-	PurpleConnection *gc = buddy->account->gc;
+	nick2id_cb_data *cb_data = user_data;
+	PurpleConnection *gc = cb_data->account->gc;
 	deserialized_element* data = NULL;
 	deserialized_element* needed_data = NULL;
 	deserialized_element* info_row = NULL;
 	PurpleNotifyUserInfo* info = purple_notify_user_info_new();
-	gchar* account_id = g_strdup_printf("%d",((hon_user_info*)(buddy->proto_data))->account_id);
+    gchar *info_name;
+	gchar* account_id = g_strdup_printf("%d",cb_data->account_id);
+
+    if(cb_data->alias)
+    {
+        info_name = g_strdup(cb_data->alias);
+    }
+    else
+    {
+        info_name = g_strdup(account_id);
+    }
+
 	if(
 		!url_text
 		|| (data = deserialize_php(&url_text,strlen(url_text)))->type != PHP_ARRAY
@@ -1129,47 +1132,65 @@ static void honpurple_info_cb(PurpleUtilFetchUrlData *url_data, gpointer user_da
 
 	}
 	purple_notify_userinfo(gc,        /* connection the buddy info came through */
-		buddy->name,  /* buddy's username */
+		info_name,  /* buddy's username */
 		info,      /* body */
 		(PurpleNotifyCloseCallback)destroy_php_element,      /* callback called when dialog closed */
 		data);     /* userdata for callback */
 
 	purple_notify_user_info_destroy(info);
-	purple_buddy_destroy(buddy);
+
+    g_free(cb_data->alias);
+    g_free(cb_data->server_alias);
+	g_free(cb_data);
+    g_free(account_id);
+    g_free(info_name);
 }
 #undef fetch_info_row
-static void honprpl_info_nick2id_callback(PurpleBuddy* buddy){
+static void honprpl_info_nick2id_callback(nick2id_cb_data *cb_data){
+    nick2id_cb_data* new_data = g_new0(nick2id_cb_data,1);
+    new_data->account_id = cb_data->account_id;
+    new_data->account = cb_data->account;
+    new_data->alias = g_strdup(cb_data->alias);
+    new_data->server_alias = g_strdup(cb_data->server_alias);
 	gchar* url = g_strdup_printf(HON_STATS_REQUEST,
-		purple_account_get_string(buddy->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
-		HON_CLIENT_REQUESTER,((hon_user_info*)(buddy->proto_data))->account_id
-		);
-	purple_util_fetch_url_request_len_with_account(buddy->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_info_cb,buddy);
+		purple_account_get_string(cb_data->account, "masterserver", HON_DEFAULT_MASTER_SERVER),
+		HON_CLIENT_REQUESTER,cb_data->account_id);
+	purple_util_fetch_url_request_len_with_account(cb_data->account,url,TRUE,NULL,FALSE,NULL,FALSE,-1,honpurple_info_cb,new_data);
 	g_free(url);
 }
-static void honprpl_info_nick2id_error_callback(PurpleBuddy* buddy){
+static void honprpl_info_nick2id_error_callback(nick2id_cb_data* data){
 	PurpleNotifyUserInfo* info = purple_notify_user_info_new();
 	purple_notify_user_info_add_pair(info, _("Error"), _("Error retrieving account id"));
-	purple_notify_userinfo(buddy->account->gc,        /* connection the buddy info came through */
-		buddy->name,  /* buddy's username */
+	purple_notify_userinfo(data->account->gc,        /* connection the buddy info came through */
+		data->alias,  /* buddy's username */
 		info,      /* body */
 		NULL,      /* callback called when dialog closed */
 		NULL);     /* userdata for callback */
-	purple_buddy_destroy(buddy);
 	purple_notify_user_info_destroy(info);
 }
 
 static void honprpl_get_info(PurpleConnection *gc, const char *username) {
-	PurpleBuddy* OrigBuddy = purple_find_buddy(gc->account,username);
-	PurpleBuddy* buddy = purple_buddy_new(gc->account,username,NULL);
+    PurpleBuddy *buddy = purple_find_buddy(gc->account, username);
+    nick2id_cb_data* cb_data = g_new0(nick2id_cb_data,1);
+    cb_data->cb = honprpl_info_nick2id_callback;
+    cb_data->error_cb = honprpl_info_nick2id_error_callback;
+    cb_data->account = gc->account;
 
-	if(OrigBuddy)
+    if ( buddy == NULL )
+        buddy = find_buddy_by_alias(gc->account, username);
+
+	if(buddy)
 	{
-		buddy->proto_data = OrigBuddy->proto_data;
-		honprpl_info_nick2id_callback(buddy);
+        cb_data->account_id = atoi(buddy->name);
+        /*cb_data->alias = g_strdup(buddy->alias);*/
+        /*cb_data->server_alias = g_strdup(buddy->server_alias);*/
+		honprpl_info_nick2id_callback(cb_data);
+        g_free(cb_data);
 	}
 	else
 	{
-		honprpl_nick2id(buddy,honprpl_info_nick2id_callback,honprpl_info_nick2id_error_callback);
+        cb_data->alias = g_strdup(username);
+		honprpl_nick2id(cb_data);
 	}
 }
 

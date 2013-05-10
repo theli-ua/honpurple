@@ -747,14 +747,17 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 					hon->clanmates = NULL;
 				}
 
-				hon->clan_info = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"clan_member_info")))->u.array;
-				if (g_hash_table_lookup(hon->clan_info,"error"))
-					hon->clan_info = NULL;
-				if (hon->clan_info)
-				{
-					hon->self.clan_tag = ((deserialized_element*)g_hash_table_lookup(hon->clan_info,"tag"))->u.string->str;
-					hon->self.clan_name = ((deserialized_element*)g_hash_table_lookup(hon->clan_info,"name"))->u.string->str;
-				}
+                if(g_hash_table_lookup(account_data->u.array,"clan_member_info"))
+                {
+                    hon->clan_info = ((deserialized_element*)(g_hash_table_lookup(account_data->u.array,"clan_member_info")))->u.array;
+                    if (g_hash_table_lookup(hon->clan_info,"error"))
+                        hon->clan_info = NULL;
+                    if (hon->clan_info)
+                    {
+                        hon->self.clan_tag = ((deserialized_element*)g_hash_table_lookup(hon->clan_info,"tag"))->u.string->str;
+                        hon->self.clan_name = ((deserialized_element*)g_hash_table_lookup(hon->clan_info,"name"))->u.string->str;
+                    }
+                }
 				
 				
 				

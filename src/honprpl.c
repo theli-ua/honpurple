@@ -1688,7 +1688,7 @@ static PurplePluginProtocolInfo prpl_info =
 	NULL,               /* user_splits, initialized in honprpl_init() */
 	NULL,               /* protocol_options, initialized in honprpl_init() */
 	{   /* icon_spec, a PurpleBuddyIconSpec */
-		"png",                   /* format */
+		"png,jpg,gif",                   /* format */
 			0,                               /* min_width */
 			0,                               /* min_height */
 			128,                             /* max_width */

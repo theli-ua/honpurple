@@ -580,6 +580,7 @@ void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
     hon_account* hon = gc->proto_data;
     guint8 notification_type = read_byte(buffer);
     gchar *title = NULL,*msg = NULL;
+    gchar* account_id_str;
     switch (notification_type)
     {
     
@@ -588,8 +589,11 @@ void hon_parse_notification(PurpleConnection *gc,gchar* buffer){
         buddies = purple_find_group(HON_BUDDIES_GROUP);
         buddyid = read_guint32(buffer);
         read_guint32(buffer); /* notification id */
-        buddy = purple_buddy_new(gc->account,buffer,NULL);
+        account_id_str = g_strdup_printf("%d", buddyid);
+        buddy = purple_buddy_new(gc->account,account_id_str,NULL);
         purple_blist_add_buddy(buddy,NULL,buddies,NULL);
+        serv_got_alias(gc, account_id_str, buffer);
+        g_free(account_id_str);
         title = g_strdup(_("Friendship Accepted"));
         if (notification_type == HON_NOTIFICATION_ADDED_AS_BUDDY)
             msg = g_strdup_printf(_("Accepted friendship request from %s"),buffer);
@@ -780,10 +784,11 @@ void hon_parse_pm_whisper(PurpleConnection *gc,gchar* buffer,guint16 is_whisper)
 
         if (!purple_find_buddy(gc->account, account_id_str))
         {
-            PurpleBuddy *buddy = purple_buddy_new(gc->account, account_id_str,from_username);
+            PurpleBuddy *buddy = purple_buddy_new(gc->account, account_id_str,NULL);
             purple_blist_node_set_flags((PurpleBlistNode *)buddy, PURPLE_BLIST_NODE_FLAG_NO_SAVE);
             purple_blist_add_buddy(buddy, NULL, pgroup, NULL);
         }
+        serv_got_alias(gc, account_id_str, from_username);
         purple_prpl_got_user_status(gc->account, account_id_str, status_id,
             HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,NULL);
         if (status != HON_STATUS_OFFLINE)
@@ -946,10 +951,11 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 
         if (!purple_find_buddy(gc->account, account_id_str))
         {
-            PurpleBuddy *buddy = purple_buddy_new(gc->account, account_id_str,nickname);
+            PurpleBuddy *buddy = purple_buddy_new(gc->account, account_id_str,NULL);
             purple_blist_node_set_flags((PurpleBlistNode *)buddy, PURPLE_BLIST_NODE_FLAG_NO_SAVE);
             purple_blist_add_buddy(buddy, NULL, pgroup, NULL);
         }
+        serv_got_alias(gc, account_id_str, nickname);
         purple_prpl_got_user_status(gc->account, account_id_str, status_id,
             HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,NULL);
         if (status != HON_STATUS_OFFLINE)
@@ -1079,10 +1085,11 @@ void hon_parse_chat_join(PurpleConnection *gc,gchar* buffer){
 
     if (!purple_find_buddy(gc->account, nick))
     {
-        PurpleBuddy *buddy = purple_buddy_new(gc->account, nick,extra);
+        PurpleBuddy *buddy = purple_buddy_new(gc->account, nick,NULL);
         purple_blist_node_set_flags((PurpleBlistNode *)buddy, PURPLE_BLIST_NODE_FLAG_NO_SAVE);
         purple_blist_add_buddy(buddy, NULL, pgroup, NULL);
     }
+    serv_got_alias(gc, nick, extra);
 
     purple_prpl_got_user_status(gc->account, nick, status_id,
         HON_STATUS_ATTR,status,HON_FLAGS_ATTR,flags,NULL);

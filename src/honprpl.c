@@ -1007,6 +1007,8 @@ static int honprpl_send_im(PurpleConnection *gc, const char *who,
     if(buddy != NULL)
     {
         recepient = buddy->server_alias;
+        if(! recepient )
+            recepient = buddy->alias;
     }
 
 	purple_markup_html_to_xhtml(message, NULL, &plain);

@@ -757,6 +757,23 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
 				honprpl_update_buddies(gc);
 				honprpl_update_clanmates(gc);
 
+                if (NULL == purple_find_buddy(gc->account, account_id))
+                {
+                    PurpleGroup *pgroup;
+
+                    pgroup = purple_find_group(HON_TEMP_GROUP);
+                    if (!pgroup)
+                    {
+                        pgroup = purple_group_new(HON_TEMP_GROUP);
+                        purple_blist_add_group(pgroup, NULL);
+                    }
+    
+                    PurpleBuddy *buddy = purple_buddy_new(gc->account, account_id,NULL);
+                    purple_blist_node_set_flags((PurpleBlistNode *)buddy, PURPLE_BLIST_NODE_FLAG_NO_SAVE);
+                    purple_blist_add_buddy(buddy, NULL, pgroup, NULL);
+                    serv_got_alias(gc, account_id, hon->self.nickname);
+                }
+
 
 				purple_connection_update_progress(gc, _("Connecting"),
 					1,   /* which connection step this is */

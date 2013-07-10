@@ -34,7 +34,7 @@
 #define HON_DEFAULT_MASTER_SERVER "http://masterserver.hon.s2games.com/"
 
 #define HON_ICON_URL "http://forums.heroesofnewerth.com/images/account_icons/%s.png"
-#define HON_CAI_URL "http://icb.s2games.com/%d/%d/%d/%s.cai"
+#define HON_CAI_URL "http://s3.amazonaws.com/naeu-icb/icons/%d/%d/%d/%s.cai"
 #define HON_CAI_PREFIX "custom_icon:"
 
 #define HON_REMOVE_BUDDY_REQUEST "%s/%s?f=remove_buddy&account_id=%d&buddy_id=%d&cookie=%s"

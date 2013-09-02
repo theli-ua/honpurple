@@ -750,6 +750,11 @@ static void start_hon_session_cb(PurpleUtilFetchUrlData *url_data, gpointer user
                         hon->self.clan_name = ((deserialized_element*)g_hash_table_lookup(hon->clan_info,"name"))->u.string->str;
                     }
                 }
+
+                if(g_hash_table_lookup(account_data->u.array,"icb_url"))
+                {
+                    hon->icb_url = ((deserialized_element*)g_hash_table_lookup(account_data->u.array,"icb_url"))->u.string->str;
+                }
 				
 				
 				
@@ -1621,6 +1626,7 @@ void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* i
 {
     PurpleBuddy *buddy = purple_find_buddy(account, nick);
     const gchar *old_avatar;
+	hon_account* hon = account->gc->proto_data;
     hon_user_info* honInfo;
     
 	gchar* url;
@@ -1657,7 +1663,7 @@ void honpurple_get_icon(PurpleAccount* account,const gchar* nick, const gchar* i
         "updating icon for %s, new icon = %s, old icon = %s\n",nick,icon,old_avatar);
     if (g_str_has_prefix(icon, HON_CAI_PREFIX))
     {
-        url = g_strdup_printf(HON_CAI_URL, accountid / 1000000, (accountid % 1000000 ) / 1000, accountid, &icon[12]);
+        url = g_strdup_printf(HON_CAI_FORMAT, hon->icb_url, accountid / 1000000, (accountid % 1000000 ) / 1000, accountid, &icon[12]);
     }
     else
     {

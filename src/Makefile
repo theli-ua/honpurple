@@ -1,6 +1,6 @@
 CFLAGS := -I. -DPURPLE_PLUGINS -fpic -g -Wall
 CFLAGS += $(shell pkg-config --cflags purple)
-LDFLAGS := $(shell pkg-config --libs purple) -fpic -lssl
+LDFLAGS := $(shell pkg-config --libs purple) -fpic -lssl -lcrypto
 TARGET := libhon.so
 VERSION := $(shell cat honprpl.h | sed -n 's/.*DISPLAY_VERSION.*"\(.*\)"/\1/p')
 CFILES   := $(foreach dir,.,$(notdir $(wildcard $(dir)/*.c)))

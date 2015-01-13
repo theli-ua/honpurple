@@ -30,7 +30,7 @@
 
 #define DISPLAY_VERSION "0.5.11.6"
 #define HON_CLIENT_REQUESTER "client_requester.php"
-#define HON_DEFAULT_MASTER_SERVER "http://masterserver.hon.s2games.com/"
+#define HON_DEFAULT_MASTER_SERVER "http://masterserver.naeu.heroesofnewerth.com/"
 
 #define HON_REMOVE_BUDDY_REQUEST "%s/%s?f=remove_buddy&account_id=%d&buddy_id=%d&cookie=%s"
 #define HON_ADD_BUDDY_REQUEST "%s/%s?f=new_buddy&account_id=%d&buddy_id=%d&cookie=%s"

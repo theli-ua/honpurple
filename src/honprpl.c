@@ -1777,7 +1777,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("whisper",
 		"ws",                  /* args: recipient and message */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT  ,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_send_whisper,
 		"whisper &lt;username&gt; &lt;message&gt;: send a whisper message",
@@ -1785,7 +1785,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("whisper",
 		"s",                  /* args: recipient and message */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_IM,
+		PURPLE_CMD_FLAG_IM | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_send_whisper,
 		"whisper &lt;message&gt;: send a whisper message",
@@ -1793,7 +1793,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("w",
 		"ws",                  /* args: recipient and message */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT  ,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_send_whisper,
 		"whisper &lt;username&gt; &lt;message&gt;: send a whisper message",
@@ -1801,7 +1801,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("w",
 		"s",                  /* args: recipient and message */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_IM,
+		PURPLE_CMD_FLAG_IM | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_send_whisper,
 		"whisper &lt;message&gt;: send a whisper message",
@@ -1812,7 +1812,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("clan",
 		"ws",                  /* args: recipient and message */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_clan_commands,
 		_("clan invite - invite to clan\nmessage or m - clan message\nother not implemented"),
@@ -1820,7 +1820,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("c",
 		"ws",                  /* args: recipient and message */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_clan_commands,
 		_("clan invite - invite to clan\nmessage or m - clan message\nother not implemented"),
@@ -1831,7 +1831,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("whois",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_who,
 		_("Request user status"),
@@ -1840,7 +1840,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("who",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_IM|PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_who,
 		_("Request user status"),
@@ -1850,7 +1850,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("j",
 		"s",
 		PURPLE_CMD_P_DEFAULT,
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_join,
 		_("Join a new chat"),
@@ -1858,7 +1858,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("join",
 		"s",
 		PURPLE_CMD_P_DEFAULT,
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_join,
 		_("Join a new chat"),
@@ -1866,7 +1866,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("j",
 		"ws",
 		PURPLE_CMD_P_DEFAULT,
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_join,
 		_("Join a new chat"),
@@ -1874,7 +1874,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("join",
 		"ws",
 		PURPLE_CMD_P_DEFAULT,
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_join,
 		_("Join a new chat"),
@@ -1882,7 +1882,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("l",
 		"",
 		PURPLE_CMD_P_DEFAULT,
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_leave,
 		_("Leave an existing chat"),
@@ -1890,7 +1890,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("leave",
 		"",
 		PURPLE_CMD_P_DEFAULT,
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_leave,
 		_("Leave an existing chat"),
@@ -1900,7 +1900,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("topic",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_topic,
 		_("Set channel topic"),
@@ -1908,7 +1908,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("t",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_topic,
 		_("Set channel topic"),
@@ -1918,7 +1918,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("password",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_password,
 		_("Set channel password"),
@@ -1926,7 +1926,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("pass",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_password,
 		_("Set channel password"),
@@ -1936,7 +1936,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("kick",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_kick,
 		_("Kick user"),
@@ -1944,7 +1944,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("k",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_kick,
 		_("Kick user"),
@@ -1954,7 +1954,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("promote",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_kick,
 		_("Promote user"),
@@ -1962,7 +1962,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("p",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_kick,
 		_("Promote user"),
@@ -1971,7 +1971,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("demote",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_kick,
 		_("Promote user"),
@@ -1979,7 +1979,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("d",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_kick,
 		_("Promote user"),
@@ -1989,7 +1989,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("ban",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_kick,
 		_("Ban user"),
@@ -1998,7 +1998,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("unban",
 		"s",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_kick,
 		_("Unban user"),
@@ -2008,7 +2008,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("silence",
 		"ww",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_silence,
 		_("Silence user\nsilence <user> <duration in seconds>"),
@@ -2018,7 +2018,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("auth",
 		"wws",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_channel_auth,
 		_("auth enable\nauth disable\nauth add\nauth delete\nauth list"),
@@ -2026,7 +2026,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("a",
 		"wws",                  /* args: user */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_ALLOW_WRONG_ARGS | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_channel_auth ,
 		_("auth enable\nauth disable\nauth add\nauth delete\nauth list"),
@@ -2035,7 +2035,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("r",
 		"s",                  /* args: string */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_channel_roll ,
 		_("roll string to send roll string :-/"),
@@ -2043,7 +2043,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("e",
 		"s",                  /* args: string */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_channel_emote ,
 		_("emote string to send emote string :-/"),
@@ -2051,7 +2051,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("emote",
 		"s",                  /* args: string */
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT,
+		PURPLE_CMD_FLAG_CHAT | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_channel_emote ,
 		_("emote string to send emote string :-/"),
@@ -2060,7 +2060,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("joingame",
 		"wws",
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM,
+		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_join_game ,
 		_("pretend to join a game\n address:port matchid gamename"),
@@ -2069,7 +2069,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("whisperbuddies",
 		"s",
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM,
+		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_whisper_buddies ,
 		_("whisper all buddies"),
@@ -2077,7 +2077,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("wb",
 		"s",
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM,
+		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_whisper_buddies ,
 		_("whisper all buddies"),
@@ -2085,7 +2085,7 @@ static void honprpl_init(PurplePlugin *plugin)
 	purple_cmd_register("buddy",
 		"ws",
 		PURPLE_CMD_P_DEFAULT,  /* priority */
-		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM,
+		PURPLE_CMD_FLAG_CHAT|PURPLE_CMD_FLAG_IM | PURPLE_CMD_FLAG_PRPL_ONLY,
 		"prpl-hon",
 		honprpl_manage_buddies ,
 		_("buddy add <nickname> - add a buddy\nbuddy del <nickname> - remove buddy"),

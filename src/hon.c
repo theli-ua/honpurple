@@ -837,7 +837,7 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
 
     while (count--)
     {
-        guint32 account_id;
+        guint32 account_id, unk32;
         guint8 status;
         const gchar* nickname;
         gchar *flag,*shield,*icon;
@@ -850,6 +850,7 @@ void hon_parse_chat_entering(PurpleConnection *gc,gchar* buffer)
         flag = read_string(buffer);
         shield = read_string(buffer);
         icon = read_string(buffer);
+        unk32 = read_guint32(buffer);
 
         purple_debug_info(HON_DEBUG_PREFIX, "room participant: %s , id=%d,status=%d,flags=%d,flag:%s,shield=%s,icon=%s\n",
             nickname,account_id,status,flags,flag,shield,icon);

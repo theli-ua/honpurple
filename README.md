@@ -26,10 +26,12 @@ Gentoo linux :
 
 <b>Downloads</b> 
 Latest released packages are now broken because of protocol updates. Git version is working though if you are willing to build it yourself
+
 ~~[Source Code](http://dl.dropbox.com/u/4443078/HoN/honpurple/honpurple-0.5.11.6.tar.bz2)  
 [windows binary](http://dl.dropbox.com/u/4443078/HoN/honpurple/honpurple-win-0.5.11.6.zip)  
 [windows openssl binary](http://dl.dropbox.com/u/4443078/HoN/honpurple/openssl.zip)  
 [x86_64 deb package](http://dl.dropbox.com/u/4443078/HoN/honpurple/honpurple_x86_64-0.5.11.6.deb)~~
+
 [homepage](https://github.com/theli-ua/honpurple)  
 report bugs and find downloads @ homepage
 

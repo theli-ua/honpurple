@@ -221,6 +221,9 @@ int hon_parse_packet(PurpleConnection *gc, gchar* buffer,int packet_length){
     case HON_SC_NOTIFICATION/*0xB4*/:
         hon_parse_notification(gc,buffer);
         break;
+    case HON_SC_TMM_INVITE/*0xC0D*/:
+        hon_parse_tmm_invite(gc,buffer);
+        break;
     default:
         hexdump = g_string_new(NULL);
         hexdump_g_string_append(hexdump,"",(guint8*)buffer,packet_length - sizeof(packet_id));
@@ -1109,6 +1112,62 @@ void hon_parse_userinfo(PurpleConnection* gc,gchar* buffer,guint16 packet_id){
     g_free(message);
 #endif
     hon->whois_conv = NULL;
+}
+void hon_parse_tmm_invite(PurpleConnection *gc,gchar* buffer)
+{
+    PurpleMessageFlags receive_flags;
+    gchar* tmp;
+    gchar* upcase;
+    gchar* split;
+    gchar* message;
+    gchar* map;
+    gchar* modes;
+    gchar* regions;
+    gchar* from_username = NULL;
+
+    from_username = read_string(buffer);
+    read_guint32(buffer); // id
+    read_byte(buffer); //flags /
+    read_byte(buffer); // ??
+    read_string(buffer); // color
+    read_string(buffer); // icon
+
+    read_guint32(buffer); // ??
+
+    map = read_string(buffer);
+
+    if (from_username[0] == '[')
+    {
+        while (from_username[0] != ']')
+            from_username++;
+        from_username++;
+    }
+
+    read_byte(buffer); // ??
+
+    // uppercase mode/region
+    // show array of mode/region more nicely
+    tmp = read_string(buffer);
+    upcase = g_ascii_strup(tmp, -1);
+    split = g_strsplit(upcase, _("|"),-1);
+    modes = g_strchomp(g_strjoinv(_(" "),split));
+    g_free(upcase);
+    g_strfreev(split);
+
+    tmp = read_string(buffer);
+    upcase = g_ascii_strup(tmp, -1);
+    split = g_strsplit(upcase, _("|"),-1);
+    regions = g_strchomp(g_strjoinv(_(" "),split));
+    g_free(upcase);
+    g_strfreev(split);
+
+    receive_flags = PURPLE_MESSAGE_SYSTEM;
+
+    message = g_strdup_printf("%s %s %s %s %s %s %s" , from_username,_("has invited you to matchmaking:\nMap:"),map,_("\nModes:"),modes,_("\nRegions:"),regions);
+    serv_got_im(gc, from_username, message, receive_flags, time(NULL));
+    g_free(message);
+    g_free(modes);
+    g_free(regions);
 }
 
 

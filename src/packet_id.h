@@ -45,6 +45,7 @@
 #define	 HON_SC_TOTAL_ONLINE 	 0x68
 #define	 HON_SC_REQUEST_NOTIFICATION 	 0xB2
 #define	 HON_SC_NOTIFICATION 	 0xB4
+#define	 HON_SC_TMM_INVITE	 0xC0D
 
 /* client -> server */
 #define	 HON_CS_PONG 	 0x2A01
@@ -79,5 +80,5 @@
 #define	 HON_CS_CHANNEL_EMOTE 	 0x65
 #define	 HON_CS_BUDDY_ACCEPT 	 0xB3
 
-#define HON_PROTOCOL_VERSION 67
+#define HON_PROTOCOL_VERSION 68
 

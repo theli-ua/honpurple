@@ -20,15 +20,6 @@ data:
  0000: bc 28 29 00 5b 4c 43 5d 44 65 6d 6f 6e 69 74 75 .().[LC]Demonitu
  0010: 73 00                                           s.
 
-Tmm Invite?
-(16:05:37) honprpl: unknown packet:
-id:C0D(3085)
-length:35
-data:
- 0000: 5b 4c 43 5d 41 73 74 72 6f 6c 6f 71 69 63 00 63 [LC]Astroloqic.c
- 0010: 61 6c 64 61 76 61 72 00 01 61 70 7c 00 45 55 7c aldavar..ap|.EU|
- 0020: 00                                              .
-
 Changed Name?
 (17:22:22) honprpl: unknown packet:
 id:5A(90)

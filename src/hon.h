@@ -64,6 +64,7 @@ void hon_parse_channel_auth_list(PurpleConnection *gc,gchar* buffer);
 void hon_parse_channel_update(PurpleConnection *gc,gchar* buffer);
 void hon_parse_emote_roll(PurpleConnection *gc,gchar* buffer, guint16 packet_id);
 void hon_parse_request(PurpleConnection *gc,gchar* buffer);
+void hon_parse_tmm_invite(PurpleConnection *gc,gchar* buffer);
 
 
 gboolean hon_send_pong(PurpleConnection *gc);

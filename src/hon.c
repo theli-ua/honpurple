@@ -1161,9 +1161,9 @@ void hon_parse_tmm_invite(PurpleConnection *gc,gchar* buffer)
     g_free(upcase);
     g_strfreev(split);
 
-    receive_flags = PURPLE_MESSAGE_SYSTEM;
+    receive_flags = PURPLE_MESSAGE_WHISPER;
 
-    message = g_strdup_printf("%s %s %s %s %s %s %s" , from_username,_("has invited you to matchmaking:\nMap:"),map,_("\nModes:"),modes,_("\nRegions:"),regions);
+    message = g_strdup_printf("%s %s %s %s %s %s" ,_("I invited you to matchmaking:\nMap:"),map,_("\nModes:"),modes,_("\nRegions:"),regions);
     serv_got_im(gc, from_username, message, receive_flags, time(NULL));
     g_free(message);
     g_free(modes);
